@@ -40,7 +40,7 @@ app.use(async (req, res, next) => {
     if(req.method == "POST") {
         if(req.path == "/register") {
             const registerToken = generateToken(30)
-            
+            supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
             respond(0, {token: registerToken})
         }
     }
@@ -62,6 +62,12 @@ async function supabaseAPI(type, table, data) {
         const res = await supabase.from(table).select("*")
         return res
     }
+
+    if(type == "insert") {
+        const res = await supabase.from(table).insert(data)
+        return res
+    }
+
     if(type == "push") {
         const del = await supabase.from(table).delete()
         const res = await supabase.from(table).insert(data)
