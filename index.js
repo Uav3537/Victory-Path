@@ -20,61 +20,82 @@ app.listen(PORT, () => {
 })
 
 app.use(async (req, res, next) => {
-    async function respond(code, data) {
-        if(code == 0) {
-            res.json({code: code, data: data})
-        }
-        if(code == 1) {
-            res.json({code: code, message: "Wrong Request"})
-        }
-        if(code == 2) {
-            res.json({code: code, message: "UnAuthorized"})
-        }
+    await loadFunction(req,res)
+    
+    global.content.tokens = await global.supabaseAPI("get", "Tokens")
+    global.content.members = await global.supabaseAPI("get", "Member")
+    console.log(global.content.members, global.content.tokens)
+    if(req.path == "/register") {
+        const registerToken = global.generateToken(30)
+        await global.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
+        await global.respond(0, {token: registerToken})
     }
-    const tokens = await supabaseAPI("get", "Tokens")
-    const members = await supabaseAPI("get", "Member")
-    console.log(members,tokens)
-    if(req.method == "GET") {
-        
-    }
-    if(req.method == "POST") {
-        if(req.path == "/register") {
-            const registerToken = generateToken(30)
-            await supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
-            respond(0, {token: registerToken})
+    else {
+        if(req.method == "POST") {
+            const grade = await global.getGrade(req.body.tokens)
+            if(grade) {
+                if(req.path == "/find") {
+                    await global.respond(0, true)
+                }
+            }
+            else {
+                await global.respond(2)
+            }
         }
     }
     console.log(req.body)
 })
 
-function generateToken(length) {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
-    let token = ""
-    const bytes = crypto.randomBytes(length)
-    for (let i = 0; i < length; i++) {
-        token += chars[bytes[i] % chars.length]
-    }
-    return token
-}
+async function loadFunction(req, res) {
+    global.content = {
+        respond: async function (code, data) {
+            if(code == 0) {
+                res.json({code: code, data: data})
+            }
+            if(code == 1) {
+                res.json({code: code, message: "Wrong Request"})
+            }
+            if(code == 2) {
+                res.json({code: code, message: "UnAuthorized"})
+            }
+        },
 
-async function supabaseAPI(type, table, data) {
-    if(type == "get") {
-        const res = await supabase.from(table).select("*")
-        return res.data
-    }
+        getGrade: async function (token, type) {
+            return global.content.tokens.find(i => i.token == token && i.type == type)
+        },
 
-    if(type == "insert") {
-        const res = await supabase.from(table).insert(data)
-        return res
-    }
+        generateToken: async function (length) {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
+            let token = ""
+            const bytes = crypto.randomBytes(length)
+            for (let i = 0; i < length; i++) {
+                token += chars[bytes[i] % chars.length]
+            }
+            return token
+        },
 
-    if(type == "push") {
-        const del = await supabase.from(table).delete()
-        const res = await supabase.from(table).insert(data)
-        return res
+        supabaseAPI: async function (type, table, data) {
+            if(type == "get") {
+                const res = await supabase.from(table).select("*")
+                return res.data
+            }
+
+            if(type == "insert") {
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "push") {
+                const del = await supabase.from(table).delete()
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "delete") {
+                const del = await supabase.from(table).delete()
+                return del
+            }
+        }
     }
-    if(type == "delete") {
-        const del = await supabase.from(table).delete()
-        return del
-    }
+    
 }
