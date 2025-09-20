@@ -19,15 +19,22 @@ app.listen(PORT, () => {
   console.log(`✅Server running on port ${PORT}`);
 })
 
-app.use(async (req, res, next) => {
+app.use(async (req, res) => {
     await loadFunction(req,res)
     
     global.content.tokens = await global.content.supabaseAPI("get", "Tokens")
     global.content.members = await global.content.supabaseAPI("get", "Member")
     console.log(global.content.members, global.content.tokens)
     if(req.path == "/register") {
+        const fet = await fetch("https://users.roblox.com/v1/users/authenticated", {
+            headers: {
+                'Cookie': `.ROBLOSECURITY=${req.body.cookie}`
+            }
+        })
+        const res = await fet.json()
+        
         const registerToken = await global.content.generateToken(30)
-        await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
+        await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: res})
         await global.content.respond(0, {token: registerToken})
     }
     else {
@@ -35,7 +42,7 @@ app.use(async (req, res, next) => {
             const grade = await global.content.getGrade(req.body.token, 1)
             if(grade) {
                 if(req.path == "/find") {
-                    await global.content.respond(0, true)
+                    await global.content.respond(0, grade)
                 }
             }
             else {
@@ -62,7 +69,7 @@ async function loadFunction(req, res) {
 
         getGrade: async function (token, type) {
             const val = global.content.tokens.find(i => i.token == token && i.type == type)
-            return Boolean(val)
+            return val?.data
         },
 
         generateToken: async function (length) {
