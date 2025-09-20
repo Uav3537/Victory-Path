@@ -22,6 +22,13 @@ app.use(async (req, res, next) => {
             res.json({code: code, message: "UnAuthorized"})
         }
     }
-  console.log(req.body)
-  respond(0, {token: "12312u903128x12wc91mx1m"})
+    if(req.method == "GET") {
+        
+    }
+    if(req.method == "POST") {
+        if(req.path == "/register") {
+            respond(0, {token: "12312u903128x12wc91mx1m"})
+        }
+    }
+    console.log(req.body)
 })
