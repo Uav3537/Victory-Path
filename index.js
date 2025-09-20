@@ -27,19 +27,19 @@ app.use(async (req, res, next) => {
     console.log(global.content.members, global.content.tokens)
     if(req.path == "/register") {
         const registerToken = global.generateToken(30)
-        await global.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
-        await global.respond(0, {token: registerToken})
+        await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
+        await global.content.respond(0, {token: registerToken})
     }
     else {
         if(req.method == "POST") {
-            const grade = await global.getGrade(req.body.tokens)
+            const grade = await global.content.getGrade(req.body.tokens)
             if(grade) {
                 if(req.path == "/find") {
-                    await global.respond(0, true)
+                    await global.content.respond(0, true)
                 }
             }
             else {
-                await global.respond(2)
+                await global.content.respond(2)
             }
         }
     }
