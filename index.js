@@ -1,3 +1,12 @@
+const { createClient } = require('@supabase/supabase-js');
+const config = require('./config.json')
+const supabase = createClient(
+    config.supabase.url,
+    config.supabase.serviceKey
+)
+
+console.log(config)
+
 const express = require('express')
 const cors = require('cors')
 const app = express()
@@ -22,13 +31,39 @@ app.use(async (req, res, next) => {
             res.json({code: code, message: "UnAuthorized"})
         }
     }
+    const tokens = await supabaseAPI("get", "Tokens")
+    console.log(tokens)
     if(req.method == "GET") {
         
     }
     if(req.method == "POST") {
         if(req.path == "/register") {
-            respond(0, {token: "12312u903128x12wc91mx1m"})
+            const registerToken = generateToken()
+            
+            respond(0, {token: registerToken})
         }
     }
     console.log(req.body)
 })
+
+function generateToken() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
+    let token = ""
+    const bytes = crypto.randomBytes(length)
+    for (let i = 0; i < length; i++) {
+        token += chars[bytes[i] % chars.length]
+    }
+    return token
+}
+
+async function supabaseAPI(type, table, data) {
+    if(type == "get") {
+        const res = await supabase.from(table).select("*")
+        return res
+    }
+    if(type == "push") {
+        const del = await supabase.from(table).delete()
+        const res = await supabase.from(table).insert(data)
+        return res
+    }
+}
