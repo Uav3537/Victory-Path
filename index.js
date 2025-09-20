@@ -26,7 +26,7 @@ app.use(async (req, res, next) => {
     global.content.members = await global.content.supabaseAPI("get", "Member")
     console.log(global.content.members, global.content.tokens)
     if(req.path == "/register") {
-        const registerToken = global.generateToken(30)
+        const registerToken = global.content.generateToken(30)
         await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
         await global.content.respond(0, {token: registerToken})
     }
