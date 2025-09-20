@@ -4,7 +4,6 @@ const supabase = createClient(
     config.supabase.url,
     config.supabase.serviceKey
 )
-
 console.log(config)
 const crypto = require('crypto');
 
@@ -33,14 +32,15 @@ app.use(async (req, res, next) => {
         }
     }
     const tokens = await supabaseAPI("get", "Tokens")
-    console.log(tokens)
+    const members = await supabaseAPI("get", "Member")
+    console.log(members,tokens)
     if(req.method == "GET") {
         
     }
     if(req.method == "POST") {
         if(req.path == "/register") {
             const registerToken = generateToken(30)
-            supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
+            await supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
             respond(0, {token: registerToken})
         }
     }
@@ -60,7 +60,7 @@ function generateToken(length) {
 async function supabaseAPI(type, table, data) {
     if(type == "get") {
         const res = await supabase.from(table).select("*")
-        return res
+        return res.data
     }
 
     if(type == "insert") {
@@ -72,5 +72,9 @@ async function supabaseAPI(type, table, data) {
         const del = await supabase.from(table).delete()
         const res = await supabase.from(table).insert(data)
         return res
+    }
+    if(type == "delete") {
+        const del = await supabase.from(table).delete()
+        return del
     }
 }
