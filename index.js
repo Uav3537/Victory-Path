@@ -32,10 +32,15 @@ app.use(async (req, res) => {
             }
         })
         const res = await fet.json()
-        
-        const registerToken = await global.content.generateToken(30)
-        await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: res})
-        await global.content.respond(0, {token: registerToken})
+        const isMember = global.content.members.find(i => i.id == res.id)
+        if(isMember) {
+            const registerToken = await global.content.generateToken(30)
+            await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: res})
+            await global.content.respond(0, {token: registerToken})
+        }
+        else {
+            await global.content.respond(3)
+        }
     }
     else {
         if(req.method == "POST") {
@@ -64,6 +69,9 @@ async function loadFunction(req, res) {
             }
             if(code == 2) {
                 res.json({code: code, message: "UnAuthorized"})
+            }
+            if(code == 3) {
+                res.json({code: code, message: "Not Member"})
             }
         },
 
