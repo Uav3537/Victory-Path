@@ -26,7 +26,7 @@ app.use(async (req, res, next) => {
     global.content.members = await global.content.supabaseAPI("get", "Member")
     console.log(global.content.members, global.content.tokens)
     if(req.path == "/register") {
-        const registerToken = global.content.generateToken(30)
+        const registerToken = await global.content.generateToken(30)
         await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1})
         await global.content.respond(0, {token: registerToken})
     }
@@ -61,7 +61,8 @@ async function loadFunction(req, res) {
         },
 
         getGrade: async function (token, type) {
-            return global.content.tokens.find(i => i.token == token).type
+            const val = global.content.tokens.find(i => i.token == token && i.type == type)
+            return Boolean(val)
         },
 
         generateToken: async function (length) {
