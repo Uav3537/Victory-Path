@@ -6,6 +6,7 @@ const supabase = createClient(
 )
 
 console.log(config)
+const crypto = require('crypto');
 
 const express = require('express')
 const cors = require('cors')
@@ -38,7 +39,7 @@ app.use(async (req, res, next) => {
     }
     if(req.method == "POST") {
         if(req.path == "/register") {
-            const registerToken = generateToken()
+            const registerToken = generateToken(30)
             
             respond(0, {token: registerToken})
         }
