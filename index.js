@@ -9,6 +9,17 @@ app.listen(PORT, () => {
 })
 
 app.use(async (req, res, next) => {
+    async function respond(code, data) {
+        if(code == 0) {
+            res.json({code: code, data: data})
+        }
+        if(code == 1) {
+            res.json({code: code, message: "Wrong Request"})
+        }
+        if(code == 2) {
+            res.json({code: code, message: "UnAuthorized"})
+        }
+    }
   console.log(req.body)
-  res.json({ code: 0 })
+  respond(0, {token: "12312u903128x12wc91mx1m"})
 })
