@@ -22,8 +22,8 @@ app.listen(PORT, () => {
 app.use(async (req, res, next) => {
     await loadFunction(req,res)
     
-    global.content.tokens = await global.supabaseAPI("get", "Tokens")
-    global.content.members = await global.supabaseAPI("get", "Member")
+    global.content.tokens = await global.content.supabaseAPI("get", "Tokens")
+    global.content.members = await global.content.supabaseAPI("get", "Member")
     console.log(global.content.members, global.content.tokens)
     if(req.path == "/register") {
         const registerToken = global.generateToken(30)
