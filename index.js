@@ -61,7 +61,7 @@ async function loadFunction(req, res) {
         },
 
         getGrade: async function (token, type) {
-            return global.content.tokens.find(i => i.token == token && i.type == type)
+            return global.content.tokens.find(i => i.token == token).type
         },
 
         generateToken: async function (length) {
