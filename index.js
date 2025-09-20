@@ -32,7 +32,7 @@ app.use(async (req, res, next) => {
     }
     else {
         if(req.method == "POST") {
-            const grade = await global.content.getGrade(req.body.tokens)
+            const grade = await global.content.getGrade(req.body.tokens, 1)
             if(grade) {
                 if(req.path == "/find") {
                     await global.content.respond(0, true)
