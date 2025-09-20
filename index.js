@@ -8,11 +8,7 @@ app.listen(PORT, () => {
   console.log(`✅Server running on port ${PORT}`);
 })
 
-app.all("/:any(*)", async(req, res) => {
-    console.log(req.body)
-    if(req.path == "/register") {
-        console.log(req.body)
-        
-    }
-    res.json({code: 0})
+app.use(async (req, res, next) => {
+  console.log(req.body)
+  res.json({ code: 0 })
 })
