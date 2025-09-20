@@ -47,7 +47,7 @@ app.use(async (req, res, next) => {
     console.log(req.body)
 })
 
-function generateToken() {
+function generateToken(length) {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
     let token = ""
     const bytes = crypto.randomBytes(length)
