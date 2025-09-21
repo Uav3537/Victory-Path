@@ -9,19 +9,20 @@ const crypto = require('crypto');
 
 const express = require('express')
 const cors = require('cors')
+const rateLimit = require('express-rate-limit')
 const app = express()
 const PORT = process.env.PORT || 3000
 
 app.use(cors({ origin: '*' }))
 app.use(express.json())
+app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
 
 app.listen(PORT, () => {
   console.log(`✅Server running on port ${PORT}`);
 })
 
 app.use(async (req, res) => {
-    await loadFunction(req,res)
-    
+    await loadFunction()
     global.content.tokens = await global.content.supabaseAPI("get", "Tokens")
     global.content.members = await global.content.supabaseAPI("get", "Member")
     console.log(global.content.members, global.content.tokens)
