@@ -33,6 +33,7 @@ app.use(async (req, res) => {
             }
         })
         const response = await fet.json()
+        global.content.player = response
         const isMember = global.content.members.find(i => i.id == response.id)
         if(isMember) {
             const registerToken = await global.content.generateToken(30)
@@ -47,6 +48,7 @@ app.use(async (req, res) => {
         try {
             if(req.method == "POST") {
                 const grade = await global.content.getGrade(req.body.token, 1)
+                global.content.player = grade.id
                 if(grade) {
                     if(req.path == "/data") {
                         if(req.body.data.type == "Member") {
@@ -64,7 +66,7 @@ app.use(async (req, res) => {
                     }
                     else if(req.path == "/track") {
                         const track = await global.content.searchObject(req.data.placeId, req.data.requestList)
-                        await global.content.respond(0, grade)
+                        await global.content.respond(0, track)
                     }
                     else {
                         await global.content.respond(1)
@@ -85,6 +87,7 @@ app.use(async (req, res) => {
 async function loadFunction(req, res) {
     global.content = {
         respond: async function (code, data) {
+            await supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
             if(code == 0) {
                 res.json({code: code, data: data})
             }
