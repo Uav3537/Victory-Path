@@ -86,29 +86,6 @@ app.use(async (req, res) => {
 
 async function loadFunction(req, res) {
     global.content = {
-        supabaseAPI: async function (type, table, data) {
-            if(type == "get") {
-                const res = await supabase.from(table).select("*")
-                return res.data
-            }
-
-            if(type == "insert") {
-                const res = await supabase.from(table).insert(data)
-                return res
-            }
-
-            if(type == "push") {
-                const del = await supabase.from(table).delete()
-                const res = await supabase.from(table).insert(data)
-                return res
-            }
-
-            if(type == "delete") {
-                const del = await supabase.from(table).delete()
-                return del
-            }
-        },
-
         respond: async function (code, data) {
             await global.content.supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
             if(code == 0) {
@@ -211,7 +188,28 @@ async function loadFunction(req, res) {
             return {found: hasResult, placeId: placeId, data: resultList}
         }
     }
-    
+    window.content.supabaseAPI = async function (type, table, data) {
+            if(type == "get") {
+                const res = await supabase.from(table).select("*")
+                return res.data
+            }
+
+            if(type == "insert") {
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "push") {
+                const del = await supabase.from(table).delete()
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "delete") {
+                const del = await supabase.from(table).delete()
+                return del
+            }
+        }
 }
 
 async function robloxAPI(type, input) {
