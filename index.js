@@ -22,7 +22,7 @@ app.listen(PORT, () => {
 })
 
 app.use(async (req, res) => {
-    await loadFunction()
+    await loadFunction(req, res)
     global.content.tokens = await global.content.supabaseAPI("get", "Tokens")
     global.content.members = await global.content.supabaseAPI("get", "Member")
     console.log(global.content.members, global.content.tokens)
@@ -32,8 +32,8 @@ app.use(async (req, res) => {
                 'Cookie': `.ROBLOSECURITY=${req.body.cookie}`
             }
         })
-        const res = await fet.json()
-        const isMember = global.content.members.find(i => i.id == res.id)
+        const response = await fet.json()
+        const isMember = global.content.members.find(i => i.id == response.id)
         if(isMember) {
             const registerToken = await global.content.generateToken(30)
             await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: res})
