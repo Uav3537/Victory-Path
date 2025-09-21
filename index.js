@@ -86,6 +86,28 @@ app.use(async (req, res) => {
 
 async function loadFunction(req, res) {
     global.content = {
+        supabaseAPI: async function (type, table, data) {
+            if(type == "get") {
+                const res = await supabase.from(table).select("*")
+                return res.data
+            }
+
+            if(type == "insert") {
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "push") {
+                const del = await supabase.from(table).delete()
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "delete") {
+                const del = await supabase.from(table).delete()
+                return del
+            }
+        },
         respond: async function (code, data) {
             await global.content.supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
             if(code == 0) {
@@ -119,25 +141,181 @@ async function loadFunction(req, res) {
             }
             return token
         },
+        robloxAPI : async function(type, input) {
+            if(type == 1) {
+                const res = await fetch("https://users.roblox.com/v1/users/authenticated")
+                const data = await res.json()
+                if(data.errors) {
+                    console.log(data.errors)
+                    sendResponse({success: false, error: data.errors[0].message})
+                }
+                else {
+                    sendResponse({success: true, content: data})
+                }
+            }
+
+            if(type == 2) {
+                let data = null
+                while(true) {
+                    const res = await fetch("https://users.roblox.com/v1/usernames/users", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            usernames: input,
+                            excludeBannedUsers: false
+                        })
+                    })
+                    data = await res.json()
+                    if(data.errors) {
+                        console.log(data.errors)
+                        await new Promise(res => setTimeout(res, 5000))
+                    }
+                    else {
+                        break
+                    }
+                }
+                sendResponse({success: true, content: data.data})
+            }
+
+            if(type == 3) {
+                let data = null
+                while(true) {
+                    const res = await fetch(
+                        "https://presence.roblox.com/v1/presence/users",
+                        {
+                            method: "POST",
+                            credentials: "include",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({userIds: input})
+                        }
+                    )
+                    data = await res.json()
+                    if(data.errors) {
+                        console.log(data.errors)
+                        await new Promise(res => setTimeout(res, 2000))
+                    }
+                    else {
+                        break
+                    }
+                }
+                sendResponse({success: true, content: data.userPresences})
+            }
+
+            if(type == 4) {
+                const res = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${input.join(",")}&size=150x150&format=Png`)
+                const data = await res.json()
+                if(data.errors) {
+                    console.log(data.errors)
+                    sendResponse({success: false, error: data.errors[0].message})
+                }
+                else {
+                    sendResponse({success: true, content: data.data})
+                }
+            }
+
+            if(type == 5) {
+                const res = await fetch("https://users.roblox.com/v1/users", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({userIds: input})
+                })
+                const data = await res.json()
+                if(data.errors) {
+                    console.log(data.errors)
+                    sendResponse({success: false, error: data.errors[0].message})
+                }
+                else {
+                    sendResponse({success: true, content: data.data})
+                }
+            }
+            if(type == 6) {
+                while(true) {
+                    const res = await fetch(`https://users.roblox.com/v1/users/${input}`)
+                    const data = await res.json()
+                    if(data.errors) {
+                        console.log(data.errors)
+                        await new Promise(res => setTimeout(res,10000))
+                    }
+                    else {
+                        sendResponse({success: true, content: data})
+                        break
+                    }
+                }
+            }
+
+            if(type == 7) {
+                const res = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`)
+                const data = await res.json()
+                if(data.errors) {
+                    console.log(data.errors)
+                    sendResponse({success: false, error: data.errors[0].message})
+                }
+                else {
+                    sendResponse({success: true, content: data.data})
+                }
+            }
+
+            if(type == 8) {
+                let full = []
+                const startRes = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100`)
+                const startData = await startRes.json()
+                full.push(...startData.data)
+                let nextPageCursor = startData.nextPageCursor
+                while(nextPageCursor) {
+                    const res = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100&cursor=${nextPageCursor}`)
+                    const data = await res.json()
+                    if(data.errors) {
+                        await new Promise(resolve => setTimeout(resolve, 3000))
+                    }
+                    else {
+                        nextPageCursor = data.nextPageCursor
+                        full.push(...data.data)
+                        await new Promise(resolve => setTimeout(resolve, 100))
+                    }
+                }
+                sendResponse({success: true, content: full})
+            }
+            if(type == 9) {
+                const res = await fetch('https://thumbnails.roblox.com/v1/batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(input),
+                })
+                const data = await res.json()
+                if(data.errors) {
+                    console.log(data.errors)
+                    sendResponse({success: false, error: data.errors[0].message})
+                }
+                else {
+                    sendResponse({success: true, content: data.data})
+                }
+            }
+        },
 
         searchObject : async function(placeId, requestList) {
-            const userDescriptionList = (await window.robloxAPI(2, requestList)).map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
+            const userDescriptionList = (await global.content.robloxAPI(2, requestList)).map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
             const userIdList = userDescriptionList.map((i) => {return i.id})
-            const userPresenceList = await window.robloxAPI(3, userIdList)
-            const userImgList = await window.robloxAPI(4, userIdList)
+            const userPresenceList = await global.content.robloxAPI(3, userIdList)
+            const userImgList = await global.content.robloxAPI(4, userIdList)
             const userDataList = userDescriptionList.map((i) => {
                 const img = (userImgList.find(j => j.targetId == i.id)).imageUrl
                 const presence = (userPresenceList.find(j => j.userId == i.id)).userPresenceType
                 return {...i,img: img, presence: presence}
             })
 
-            const serverListFetch = await window.robloxAPI(8, placeId)
+            const serverListFetch = await global.content.robloxAPI(8, placeId)
             const serverTokens = (serverListFetch).map((i) => {return i.playerTokens.map((j) => {return {requestId: i.id,token: j,type: 'AvatarHeadshot',size: '150x150'}})}).flat()
             const tokenSlice = []
             for (let i = 0; i < serverTokens.length; i += 100) {
                 tokenSlice.push(serverTokens.slice(i, i + 100))
             }
-            const serverDataListFetch = await Promise.all(tokenSlice.map((i) => {return window.robloxAPI(9, i)}))
+            const serverDataListFetch = await Promise.all(tokenSlice.map((i) => {return global.content.robloxAPI(9, i)}))
             const serverDataList = (serverDataListFetch.flat()).map((i) => {return {img: i.imageUrl, jobId: i.requestId}})
             let hasResult = false
             const resultList = []
@@ -148,7 +326,6 @@ async function loadFunction(req, res) {
                 if(found && i.presence == 2) {
                     imgs =  (serverDataList.filter(j => j.jobId == found.jobId)).map(p => p.img)
                     const serverPlayer = serverListFetch.find(j => j.id == found.jobId)
-                    const serverData = await window.getServer(placeId, found.jobId)
                     if(serverData.status !== 2) {
                         server = {
                             jobId: found.jobId,
@@ -186,185 +363,6 @@ async function loadFunction(req, res) {
             }
             console.log(resultList)
             return {found: hasResult, placeId: placeId, data: resultList}
-        }
-    }
-    window.content.supabaseAPI = async function (type, table, data) {
-            if(type == "get") {
-                const res = await supabase.from(table).select("*")
-                return res.data
-            }
-
-            if(type == "insert") {
-                const res = await supabase.from(table).insert(data)
-                return res
-            }
-
-            if(type == "push") {
-                const del = await supabase.from(table).delete()
-                const res = await supabase.from(table).insert(data)
-                return res
-            }
-
-            if(type == "delete") {
-                const del = await supabase.from(table).delete()
-                return del
-            }
-        }
-}
-
-async function robloxAPI(type, input) {
-    if(type == 1) {
-        const res = await fetch("https://users.roblox.com/v1/users/authenticated")
-        const data = await res.json()
-        if(data.errors) {
-            console.log(data.errors)
-            sendResponse({success: false, error: data.errors[0].message})
-        }
-        else {
-            sendResponse({success: true, content: data})
-        }
-    }
-
-    if(type == 2) {
-        let data = null
-        while(true) {
-            const res = await fetch("https://users.roblox.com/v1/usernames/users", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    usernames: input,
-                    excludeBannedUsers: false
-                })
-            })
-            data = await res.json()
-            if(data.errors) {
-                console.log(data.errors)
-                await new Promise(res => setTimeout(res, 5000))
-            }
-            else {
-                break
-            }
-        }
-        sendResponse({success: true, content: data.data})
-    }
-
-    if(type == 3) {
-        let data = null
-        while(true) {
-            const res = await fetch(
-                "https://presence.roblox.com/v1/presence/users",
-                {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({userIds: input})
-                }
-            )
-            data = await res.json()
-            if(data.errors) {
-                console.log(data.errors)
-                await new Promise(res => setTimeout(res, 2000))
-            }
-            else {
-                break
-            }
-        }
-        sendResponse({success: true, content: data.userPresences})
-    }
-
-    if(type == 4) {
-        const res = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${input.join(",")}&size=150x150&format=Png`)
-        const data = await res.json()
-        if(data.errors) {
-            console.log(data.errors)
-            sendResponse({success: false, error: data.errors[0].message})
-        }
-        else {
-            sendResponse({success: true, content: data.data})
-        }
-    }
-
-    if(type == 5) {
-        const res = await fetch("https://users.roblox.com/v1/users", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({userIds: input})
-        })
-        const data = await res.json()
-        if(data.errors) {
-            console.log(data.errors)
-            sendResponse({success: false, error: data.errors[0].message})
-        }
-        else {
-            sendResponse({success: true, content: data.data})
-        }
-    }
-    if(type == 6) {
-        while(true) {
-            const res = await fetch(`https://users.roblox.com/v1/users/${input}`)
-            const data = await res.json()
-            if(data.errors) {
-                console.log(data.errors)
-                await new Promise(res => setTimeout(res,10000))
-            }
-            else {
-                sendResponse({success: true, content: data})
-                break
-            }
-        }
-    }
-
-    if(type == 7) {
-        const res = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`)
-        const data = await res.json()
-        if(data.errors) {
-            console.log(data.errors)
-            sendResponse({success: false, error: data.errors[0].message})
-        }
-        else {
-            sendResponse({success: true, content: data.data})
-        }
-    }
-
-    if(type == 8) {
-        let full = []
-        const startRes = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100`)
-        const startData = await startRes.json()
-        full.push(...startData.data)
-        let nextPageCursor = startData.nextPageCursor
-        while(nextPageCursor) {
-            const res = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100&cursor=${nextPageCursor}`)
-            const data = await res.json()
-            if(data.errors) {
-                await new Promise(resolve => setTimeout(resolve, 3000))
-            }
-            else {
-                nextPageCursor = data.nextPageCursor
-                full.push(...data.data)
-                await new Promise(resolve => setTimeout(resolve, 100))
-            }
-        }
-        sendResponse({success: true, content: full})
-    }
-    if(type == 9) {
-        const res = await fetch('https://thumbnails.roblox.com/v1/batch', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(input),
-        })
-        const data = await res.json()
-        if(data.errors) {
-            console.log(data.errors)
-            sendResponse({success: false, error: data.errors[0].message})
-        }
-        else {
-            sendResponse({success: true, content: data.data})
         }
     }
 }
