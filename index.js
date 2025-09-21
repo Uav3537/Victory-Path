@@ -110,7 +110,7 @@ async function loadFunction(req, res) {
         },
 
         respond: async function (code, data) {
-            await supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
+            await global.content.supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
             if(code == 0) {
                 res.json({code: code, data: data})
             }
