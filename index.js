@@ -25,7 +25,6 @@ app.use(async (req, res) => {
     await loadFunction(req, res)
     global.content.tokens = await global.content.supabaseAPI("get", "Tokens")
     global.content.members = await global.content.supabaseAPI("get", "Member")
-    console.log(global.content.members, global.content.tokens)
     if(req.path == "/register") {
         const fet = await fetch("https://users.roblox.com/v1/users/authenticated", {
             headers: {
@@ -47,6 +46,7 @@ app.use(async (req, res) => {
     else {
         try {
             if(req.method == "POST") {
+                console.lo
                 const grade = await global.content.getGrade(req.body.token, 1)
                 global.content.player = grade.id
                 if(grade) {
@@ -86,6 +86,29 @@ app.use(async (req, res) => {
 
 async function loadFunction(req, res) {
     global.content = {
+        supabaseAPI: async function (type, table, data) {
+            if(type == "get") {
+                const res = await supabase.from(table).select("*")
+                return res.data
+            }
+
+            if(type == "insert") {
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "push") {
+                const del = await supabase.from(table).delete()
+                const res = await supabase.from(table).insert(data)
+                return res
+            }
+
+            if(type == "delete") {
+                const del = await supabase.from(table).delete()
+                return del
+            }
+        },
+        
         respond: async function (code, data) {
             await supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
             if(code == 0) {
@@ -120,28 +143,6 @@ async function loadFunction(req, res) {
             return token
         },
 
-        supabaseAPI: async function (type, table, data) {
-            if(type == "get") {
-                const res = await supabase.from(table).select("*")
-                return res.data
-            }
-
-            if(type == "insert") {
-                const res = await supabase.from(table).insert(data)
-                return res
-            }
-
-            if(type == "push") {
-                const del = await supabase.from(table).delete()
-                const res = await supabase.from(table).insert(data)
-                return res
-            }
-
-            if(type == "delete") {
-                const del = await supabase.from(table).delete()
-                return del
-            }
-        },
         searchObject : async function(placeId, requestList) {
             const userDescriptionList = (await window.robloxAPI(2, requestList)).map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
             const userIdList = userDescriptionList.map((i) => {return i.id})
