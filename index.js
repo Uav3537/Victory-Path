@@ -46,7 +46,7 @@ app.use(async (req, res) => {
     else {
         try {
             if(req.method == "POST") {
-                console.lo
+                console.log(req.body)
                 const grade = await global.content.getGrade(req.body.token, 1)
                 global.content.player = grade.id
                 if(grade) {
@@ -108,7 +108,7 @@ async function loadFunction(req, res) {
                 return del
             }
         },
-        
+
         respond: async function (code, data) {
             await supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
             if(code == 0) {
