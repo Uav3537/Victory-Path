@@ -36,7 +36,7 @@ app.use(async (req, res) => {
         const isMember = global.content.members.find(i => i.id == response.id)
         if(isMember) {
             const registerToken = await global.content.generateToken(30)
-            await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: res})
+            await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: response})
             await global.content.respond(0, {token: registerToken})
         }
         else {
