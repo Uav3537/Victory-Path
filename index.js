@@ -46,7 +46,21 @@ app.use(async (req, res) => {
         if(req.method == "POST") {
             const grade = await global.content.getGrade(req.body.token, 1)
             if(grade) {
-                if(req.path == "/find") {
+                if(req.path == "/data") {
+                    if(req.body.data.type == "Member") {
+                        const member = await global.content.supabaseAPI("get", "Member")
+                        await global.content.respond(0, member)
+                    }
+                    else if(req.body.data.type == "Teamer") {
+                        const teamer = await global.content.supabaseAPI("get", "Teamer")
+                        await global.content.respond(0, teamer)
+                    }
+                    else {
+                        await global.content.respond(1)
+                    }
+                    
+                }
+                else if(req.path == "/track") {
                     await global.content.respond(0, grade)
                 }
             }
