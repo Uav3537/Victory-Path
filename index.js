@@ -225,7 +225,8 @@ async function loadFunction(req, res) {
                 const res = await fetch("https://users.roblox.com/v1/users", {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        'Cookie': `.ROBLOSECURITY=${req.body.cookie}`
                     },
                     body: JSON.stringify({userIds: input})
                 })
@@ -332,7 +333,7 @@ async function loadFunction(req, res) {
                 if(found && i.presence == 2) {
                     imgs =  (serverDataList.filter(j => j.jobId == found.jobId)).map(p => p.img)
                     const serverPlayer = serverListFetch.find(j => j.id == found.jobId)
-                    if(serverData.status !== 2) {
+                    if(serverPlayer.status !== 2) {
                         server = {
                             jobId: found.jobId,
                             img: imgs,
