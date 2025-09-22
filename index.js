@@ -149,10 +149,10 @@ async function loadFunction(req, res) {
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
-                    sendResponse({success: false, error: data.errors[0].message})
+                    return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    sendResponse({success: true, content: data})
+                    return {success: true, content: data}
                 }
             }
 
@@ -178,7 +178,7 @@ async function loadFunction(req, res) {
                         break
                     }
                 }
-                sendResponse({success: true, content: data.data})
+                return {success: true, content: data.data}
             }
 
             if(type == 3) {
@@ -202,7 +202,7 @@ async function loadFunction(req, res) {
                         break
                     }
                 }
-                sendResponse({success: true, content: data.userPresences})
+                return {success: true, content: data.userPresences}
             }
 
             if(type == 4) {
@@ -210,10 +210,10 @@ async function loadFunction(req, res) {
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
-                    sendResponse({success: false, error: data.errors[0].message})
+                    return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    sendResponse({success: true, content: data.data})
+                    return {success: true, content: data.data}
                 }
             }
 
@@ -228,10 +228,10 @@ async function loadFunction(req, res) {
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
-                    sendResponse({success: false, error: data.errors[0].message})
+                    return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    sendResponse({success: true, content: data.data})
+                    return {success: true, content: data.data}
                 }
             }
             if(type == 6) {
@@ -243,7 +243,7 @@ async function loadFunction(req, res) {
                         await new Promise(res => setTimeout(res,10000))
                     }
                     else {
-                        sendResponse({success: true, content: data})
+                        return {success: true, content: data}
                         break
                     }
                 }
@@ -254,10 +254,10 @@ async function loadFunction(req, res) {
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
-                    sendResponse({success: false, error: data.errors[0].message})
+                    return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    sendResponse({success: true, content: data.data})
+                    return {success: true, content: data.data}
                 }
             }
 
@@ -279,7 +279,7 @@ async function loadFunction(req, res) {
                         await new Promise(resolve => setTimeout(resolve, 100))
                     }
                 }
-                sendResponse({success: true, content: full})
+                return {success: true, content: full}
             }
             if(type == 9) {
                 const res = await fetch('https://thumbnails.roblox.com/v1/batch', {
@@ -292,10 +292,10 @@ async function loadFunction(req, res) {
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
-                    sendResponse({success: false, error: data.errors[0].message})
+                    return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    sendResponse({success: true, content: data.data})
+                    return {success: true, content: data.data}
                 }
             }
         },
