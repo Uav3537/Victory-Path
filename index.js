@@ -50,7 +50,7 @@ app.use(async (req, res) => {
                 console.log(req.body)
                 const grade = await global.content.getGrade(req.body.token, 1)
                 global.content.player = grade.id
-                global.content.ROBLOXSECURITY = req.body.ROBLOXSECURITY
+                global.content.ROBLOXSECURITY = grade.ROBLOXSECURITY
                 if(grade) {
                     if(req.path == "/data") {
                         if(req.body.data.type == "Member") {
