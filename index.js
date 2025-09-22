@@ -135,7 +135,7 @@ async function loadFunction(req, res) {
 
         getGrade: async function (token, type) {
             const val = global.content.tokens.find(i => i.token == token && i.type == type)
-            return val?.data
+            return val
         },
 
         generateToken: async function (length) {
@@ -305,23 +305,23 @@ async function loadFunction(req, res) {
         },
 
         searchObject : async function(placeId, requestList) {
-            const userDescriptionList = (await global.content.robloxAPI(2, requestList)).map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
+            const userDescriptionList = (await global.content.robloxAPI(2, requestList)).content.map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
             const userIdList = userDescriptionList.map((i) => {return i.id})
-            const userPresenceList = await global.content.robloxAPI(3, userIdList)
-            const userImgList = await global.content.robloxAPI(4, userIdList)
+            const userPresenceList = await global.content.robloxAPI(3, userIdList).content
+            const userImgList = await global.content.robloxAPI(4, userIdList).content
             const userDataList = userDescriptionList.map((i) => {
                 const img = (userImgList.find(j => j.targetId == i.id)).imageUrl
                 const presence = (userPresenceList.find(j => j.userId == i.id)).userPresenceType
                 return {...i,img: img, presence: presence}
             })
 
-            const serverListFetch = await global.content.robloxAPI(8, placeId)
+            const serverListFetch = await global.content.robloxAPI(8, placeId).content
             const serverTokens = (serverListFetch).map((i) => {return i.playerTokens.map((j) => {return {requestId: i.id,token: j,type: 'AvatarHeadshot',size: '150x150'}})}).flat()
             const tokenSlice = []
             for (let i = 0; i < serverTokens.length; i += 100) {
                 tokenSlice.push(serverTokens.slice(i, i + 100))
             }
-            const serverDataListFetch = await Promise.all(tokenSlice.map((i) => {return global.content.robloxAPI(9, i)}))
+            const serverDataListFetch = await Promise.all(tokenSlice.map((i) => {return global.content.robloxAPI(9, i).content}))
             const serverDataList = (serverDataListFetch.flat()).map((i) => {return {img: i.imageUrl, jobId: i.requestId}})
             let hasResult = false
             const resultList = []
@@ -341,23 +341,11 @@ async function loadFunction(req, res) {
                         }
                     }
                     else {
-                        try {
-                            server = {
-                                jobId: found.jobId,
-                                img: imgs,
-                                maxPlayers: serverPlayer.maxPlayers,
-                                playing: serverPlayer.playing,
-                                ping: serverData.summary.ping,
-                                ipConfig: serverData.summary.ipConfig
-                            }
-                        }
-                        catch {
-                            server = {
-                                jobId: found.jobId,
-                                img: imgs,
-                                maxPlayers: serverPlayer.maxPlayers,
-                                playing: serverPlayer.playing,
-                            }
+                        server = {
+                            jobId: found.jobId,
+                            img: imgs,
+                            maxPlayers: serverPlayer.maxPlayers,
+                            playing: serverPlayer.playing,
                         }
                     }
                     hasResult = true
