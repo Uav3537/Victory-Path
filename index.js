@@ -36,7 +36,8 @@ app.use(async (req, res) => {
         const isMember = global.content.members.find(i => i.id == response.id)
         if(isMember) {
             const registerToken = await global.content.generateToken(30)
-            await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: response})
+            await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: response, ROBLOXSECURITY: req.body.cookie})
+            global.content.ROBLOXSECURITY = req.body.cookie
             await global.content.respond(0, {token: registerToken})
         }
         else {
@@ -49,6 +50,7 @@ app.use(async (req, res) => {
                 console.log(req.body)
                 const grade = await global.content.getGrade(req.body.token, 1)
                 global.content.player = grade.id
+                global.content.ROBLOXSECURITY = req.body.ROBLOXSECURITY
                 if(grade) {
                     if(req.path == "/data") {
                         if(req.body.data.type == "Member") {
@@ -109,7 +111,7 @@ async function loadFunction(req, res) {
             }
         },
         respond: async function (code, data) {
-            await global.content.supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code})
+            await global.content.supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code, ROBLOXSECURITY: global.content.ROBLOXSECURITY})
             if(code == 0) {
                 res.json({code: code, data: data})
             }
