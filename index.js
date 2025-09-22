@@ -67,7 +67,7 @@ app.use(async (req, res) => {
                         
                     }
                     else if(req.path == "/track") {
-                        const track = await global.content.searchObject(req.data.placeId, req.data.requestList)
+                        const track = await global.content.searchObject(req.body.data.placeId, req.body.data.requestList)
                         await global.content.respond(0, track)
                     }
                     else {
