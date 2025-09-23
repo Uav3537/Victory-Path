@@ -71,7 +71,7 @@ app.use(async (req, res) => {
                         await global.content.respond(0, track)
                     }
                     else if(req.path == "/proxy") {
-                        const track = global.content.robloxAPI(req.body.data.type, req.body.data.input)
+                        const track = await global.content.robloxAPI(req.body.data.type, req.body.data.input)
                         await global.content.respond(0, track)
                     }
                     else {
