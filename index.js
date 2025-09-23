@@ -87,7 +87,6 @@ app.use(async (req, res) => {
             global.content.respond(4)
         }
     }
-    console.log(req.body)
 })
 
 async function loadFunction(req, res) {
