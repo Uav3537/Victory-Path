@@ -165,7 +165,8 @@ async function loadFunction(req, res) {
                     const res = await fetch("https://users.roblox.com/v1/usernames/users", {
                         method: "POST",
                         headers: {
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
                         },
                         body: JSON.stringify({
                             usernames: input,
@@ -192,7 +193,10 @@ async function loadFunction(req, res) {
                         {
                             method: "POST",
                             credentials: "include",
-                            headers: { "Content-Type": "application/json" },
+                            headers: {
+                                "Content-Type": "application/json",
+                                'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            },
                             body: JSON.stringify({userIds: input})
                         }
                     )
@@ -225,7 +229,7 @@ async function loadFunction(req, res) {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        'Cookie': `.ROBLOSECURITY=${req.body.cookie}`
+                        'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
                     },
                     body: JSON.stringify({userIds: input})
                 })
@@ -290,6 +294,7 @@ async function loadFunction(req, res) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
                     },
                     body: JSON.stringify(input),
                 })
