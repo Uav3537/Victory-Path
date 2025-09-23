@@ -83,7 +83,8 @@ app.use(async (req, res) => {
                 }
             }
         }
-        catch {
+        catch(error) {
+            console.log(error)
             global.content.respond(4)
         }
     }
