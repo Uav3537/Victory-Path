@@ -148,6 +148,7 @@ async function loadFunction(req, res) {
             return token
         },
         robloxAPI : async function(type, input) {
+            console.log("robloxAPI 요청", type, input)
             if(type == 1) {
                 const res = await fetch("https://users.roblox.com/v1/users/authenticated",
                     {
@@ -183,6 +184,7 @@ async function loadFunction(req, res) {
                         })
                     })
                     data = await res.json()
+                    console.log("robloxAPI 요청", type, data)
                     if(data.errors) {
                         console.log(data.errors)
                         await new Promise(res => setTimeout(res, 5000))
@@ -210,6 +212,7 @@ async function loadFunction(req, res) {
                         }
                     )
                     data = await res.json()
+                    console.log("robloxAPI 요청", type, data)
                     if(data.errors) {
                         console.log(data.errors)
                         await new Promise(res => setTimeout(res, 2000))
@@ -232,6 +235,7 @@ async function loadFunction(req, res) {
                     }
                 )
                 const data = await res.json()
+                console.log("robloxAPI 요청", type, data)
                 if(data.errors) {
                     console.log(data.errors)
                     return {success: false, error: data.errors[0].message}
@@ -251,6 +255,7 @@ async function loadFunction(req, res) {
                     body: JSON.stringify({userIds: input})
                 })
                 const data = await res.json()
+                console.log("robloxAPI 요청", type, data)
                 if(data.errors) {
                     console.log(data.errors)
                     return {success: false, error: data.errors[0].message}
@@ -271,6 +276,7 @@ async function loadFunction(req, res) {
                     }
                 )
                     const data = await res.json()
+                    console.log("robloxAPI 요청", type, data)
                     if(data.errors) {
                         console.log(data.errors)
                         await new Promise(res => setTimeout(res,10000))
@@ -363,7 +369,6 @@ async function loadFunction(req, res) {
             const userIdList = userDescriptionList.map((i) => {return i.id})
             const userPresenceList = await global.content.robloxAPI(3, userIdList).content
             const userImgList = await global.content.robloxAPI(4, userIdList).content
-            console.warn(userImgList)
             const userDataList = userDescriptionList.map((i) => {
                 const img = (userImgList.find(j => j.targetId == i.id)).imageUrl
                 const presence = (userPresenceList.find(j => j.userId == i.id)).userPresenceType
