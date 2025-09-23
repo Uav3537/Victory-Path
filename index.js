@@ -363,6 +363,7 @@ async function loadFunction(req, res) {
             const userIdList = userDescriptionList.map((i) => {return i.id})
             const userPresenceList = await global.content.robloxAPI(3, userIdList).content
             const userImgList = await global.content.robloxAPI(4, userIdList).content
+            console.warn(userImgList)
             const userDataList = userDescriptionList.map((i) => {
                 const img = (userImgList.find(j => j.targetId == i.id)).imageUrl
                 const presence = (userPresenceList.find(j => j.userId == i.id)).userPresenceType
