@@ -49,7 +49,7 @@ app.use(async (req, res) => {
             if(req.method == "POST") {
                 console.log(req.body)
                 const grade = await global.content.getGrade(req.body.token, 1)
-                global.content.player = grade.id
+                global.content.player = grade.data
                 global.content.ROBLOXSECURITY = grade.ROBLOXSECURITY
                 if(grade) {
                     if(req.path == "/data") {
@@ -148,7 +148,15 @@ async function loadFunction(req, res) {
         },
         robloxAPI : async function(type, input) {
             if(type == 1) {
-                const res = await fetch("https://users.roblox.com/v1/users/authenticated")
+                const res = await fetch("https://users.roblox.com/v1/users/authenticated",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        }
+                    }
+                )
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
@@ -213,7 +221,15 @@ async function loadFunction(req, res) {
             }
 
             if(type == 4) {
-                const res = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${input.join(",")}&size=150x150&format=Png`)
+                const res = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${input.join(",")}&size=150x150&format=Png`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        }
+                    }
+                )
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
@@ -244,7 +260,15 @@ async function loadFunction(req, res) {
             }
             if(type == 6) {
                 while(true) {
-                    const res = await fetch(`https://users.roblox.com/v1/users/${input}`)
+                    const res = await fetch(`https://users.roblox.com/v1/users/${input}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        }
+                    }
+                )
                     const data = await res.json()
                     if(data.errors) {
                         console.log(data.errors)
@@ -258,7 +282,15 @@ async function loadFunction(req, res) {
             }
 
             if(type == 7) {
-                const res = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`)
+                const res = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        }
+                    }
+                )
                 const data = await res.json()
                 if(data.errors) {
                     console.log(data.errors)
@@ -271,12 +303,28 @@ async function loadFunction(req, res) {
 
             if(type == 8) {
                 let full = []
-                const startRes = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100`)
+                const startRes = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        }
+                    }
+                )
                 const startData = await startRes.json()
                 full.push(...startData.data)
                 let nextPageCursor = startData.nextPageCursor
                 while(nextPageCursor) {
-                    const res = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100&cursor=${nextPageCursor}`)
+                    const res = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100&cursor=${nextPageCursor}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        }
+                    }
+                )
                     const data = await res.json()
                     if(data.errors) {
                         await new Promise(resolve => setTimeout(resolve, 3000))
