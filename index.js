@@ -85,7 +85,7 @@ app.use(async (req, res) => {
         }
         catch(error) {
             console.log(error)
-            global.content.respond(4)
+            global.content.respond(4, error)
         }
     }
 })
@@ -129,7 +129,7 @@ async function loadFunction(req, res) {
                 res.json({code: code, message: "Not Member"})
             }
             if(code == 4) {
-                res.json({code: code, message: "Error"})
+                res.json({code: code, message: "Error", errors: data})
             }
         },
 
@@ -184,7 +184,6 @@ async function loadFunction(req, res) {
                         })
                     })
                     data = await res.json()
-                    console.log("robloxAPI 요청", type, data)
                     if(data.errors) {
                         console.log(data.errors)
                         await new Promise(res => setTimeout(res, 5000))
@@ -212,7 +211,6 @@ async function loadFunction(req, res) {
                         }
                     )
                     data = await res.json()
-                    console.log("robloxAPI 요청", type, data)
                     if(data.errors) {
                         console.log(data.errors)
                         await new Promise(res => setTimeout(res, 2000))
@@ -235,7 +233,6 @@ async function loadFunction(req, res) {
                     }
                 )
                 const data = await res.json()
-                console.log("robloxAPI 요청", type, data)
                 if(data.errors) {
                     console.log(data.errors)
                     return {success: false, error: data.errors[0].message}
@@ -255,7 +252,6 @@ async function loadFunction(req, res) {
                     body: JSON.stringify({userIds: input})
                 })
                 const data = await res.json()
-                console.log("robloxAPI 요청", type, data)
                 if(data.errors) {
                     console.log(data.errors)
                     return {success: false, error: data.errors[0].message}
@@ -276,7 +272,6 @@ async function loadFunction(req, res) {
                     }
                 )
                     const data = await res.json()
-                    console.log("robloxAPI 요청", type, data)
                     if(data.errors) {
                         console.log(data.errors)
                         await new Promise(res => setTimeout(res,10000))
