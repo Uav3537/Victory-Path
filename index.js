@@ -376,7 +376,12 @@ async function loadFunction(req, res) {
             for (let i = 0; i < serverTokens.length; i += 100) {
                 tokenSlice.push(serverTokens.slice(i, i + 100))
             }
-            const serverDataListFetch = await Promise.all(tokenSlice.map((i) => {return global.content.robloxAPI(9, i).content}))
+            const serverDataListFetch = await Promise.all(
+                tokenSlice.map(async (i) => {
+                    const res = await global.content.robloxAPI(9, i)
+                    return res.content
+                })
+            )
             const serverDataList = (serverDataListFetch.flat()).map((i) => {return {img: i.imageUrl, jobId: i.requestId}})
             let hasResult = false
             const resultList = []
