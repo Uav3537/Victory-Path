@@ -363,7 +363,7 @@ async function loadFunction(req, res) {
             const userDescriptionList = (await global.content.robloxAPI(2, requestList)).content.map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
             const userIdList = userDescriptionList.map((i) => {return i.id})
             const userPresenceList = await global.content.robloxAPI(3, userIdList).content
-            console.log(`userImgList: `, userIdList)
+            console.log(`userIdList: `, userIdList)
             const userImgList = await global.content.robloxAPI(4, userIdList).content
             console.log(`userImgList: `, userImgList)
             const userDataList = userDescriptionList.map((i) => {
