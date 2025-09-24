@@ -148,6 +148,7 @@ async function loadFunction(req, res) {
             return token
         },
         robloxAPI : async function(type, input) {
+            console.log(`robloxAPI 요청: type[${type}]`)
             if(type == 1) {
                 const res = await fetch("https://users.roblox.com/v1/users/authenticated",
                     {
@@ -232,7 +233,6 @@ async function loadFunction(req, res) {
                     }
                 )
                 const data = await res.json()
-                console.log("robloxAPI type4:", data)
                 if(data.errors) {
                     console.log(data.errors)
                     return {success: false, error: data.errors[0].message}
@@ -363,9 +363,7 @@ async function loadFunction(req, res) {
             const userDescriptionList = (await global.content.robloxAPI(2, requestList)).content.map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
             const userIdList = userDescriptionList.map((i) => {return i.id})
             const userPresenceList = (await global.content.robloxAPI(3, userIdList)).content
-            console.log(`userIdList: `, userIdList)
             const userImgList = await global.content.robloxAPI(4, userIdList).content
-            console.log(`userImgList: `, userImgList)
             const userDataList = userDescriptionList.map((i) => {
                 const img = (userImgList.find(j => j.targetId == i.id)).imageUrl
                 const presence = (userPresenceList.find(j => j.userId == i.id)).userPresenceType
