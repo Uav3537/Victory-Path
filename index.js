@@ -363,14 +363,14 @@ async function loadFunction(req, res) {
             const userDescriptionList = (await global.content.robloxAPI(2, requestList)).content.map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
             const userIdList = userDescriptionList.map((i) => {return i.id})
             const userPresenceList = (await global.content.robloxAPI(3, userIdList)).content
-            const userImgList = await global.content.robloxAPI(4, userIdList).content
+            const userImgList = (await global.content.robloxAPI(4, userIdList)).content
             const userDataList = userDescriptionList.map((i) => {
                 const img = (userImgList.find(j => j.targetId == i.id)).imageUrl
                 const presence = (userPresenceList.find(j => j.userId == i.id)).userPresenceType
                 return {...i,img: img, presence: presence}
             })
 
-            const serverListFetch = await global.content.robloxAPI(8, placeId).content
+            const serverListFetch = (await global.content.robloxAPI(8, placeId)).content
             const serverTokens = (serverListFetch).map((i) => {return i.playerTokens.map((j) => {return {requestId: i.id,token: j,type: 'AvatarHeadshot',size: '150x150'}})}).flat()
             const tokenSlice = []
             for (let i = 0; i < serverTokens.length; i += 100) {
