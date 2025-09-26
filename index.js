@@ -22,13 +22,22 @@ app.listen(PORT, () => {
 })
 
 app.use(async(req, res) => {
+    console.log(req.body)
     const package = await loadPackage(req, res)
     const supabaseTable = ["Logs","Member","Teamer","Tokens"]
-    const supabaseData = await Promise.all(
-        supabaseTable.map(i => [i, package.supabaseAPI("get", i)])
+    const supabaseData = Object.fromEntries(
+        await Promise.all(
+            supabaseTable.map(async table => [table, await package.supabaseAPI("get", table)])
+        )
     )
-    console.log(supabaseData)
-    package.respond(0, supabaseData)
+    req.ROBLOXSECURITY = req.body.ROBLOXSECURITY
+    if(req.path == "/register") {
+        req.player = await package.robloxAPI(1,null,req.ROBLOXSECURITY)
+        package.respond(0, req.player)
+    }
+    else {
+        package.respond(0, supabaseData)
+    }
 })
 
 async function loadPackage(req, res) {
@@ -56,7 +65,13 @@ async function loadPackage(req, res) {
             }
         },
         respond: async function (code, data) {
-            await global.content.supabaseAPI("insert", "Logs", {path: req.path, ip: req.ip, player: global.content.player, code: code, ROBLOXSECURITY: global.content.ROBLOXSECURITY})
+            await funcs.supabaseAPI("insert", "Logs", {
+                path: req.path,
+                ip: req.ip,
+                player: req.player,
+                code: code,
+                ROBLOXSECURITY: req.ROBLOXSECURITY
+            })
             if(code == 0) {
                 res.json({code: code, data: data})
             }
@@ -72,11 +87,6 @@ async function loadPackage(req, res) {
             if(code == 4) {
                 res.json({code: code, message: "Error", errors: data})
             }
-        },
-
-        getGrade: async function (token, type) {
-            const val = global.content.tokens.find(i => i.token == token && i.type == type)
-            return val
         },
 
         generateToken: async function (length) {
