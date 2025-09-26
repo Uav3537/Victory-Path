@@ -21,77 +21,18 @@ app.listen(PORT, () => {
   console.log(`✅Server running on port ${PORT}`);
 })
 
-app.use(async (req, res) => {
-    await loadFunction(req, res)
-    global.content.tokens = await global.content.supabaseAPI("get", "Tokens")
-    global.content.members = await global.content.supabaseAPI("get", "Member")
-    if(req.path == "/register") {
-        const fet = await fetch("https://users.roblox.com/v1/users/authenticated", {
-            headers: {
-                'Cookie': `.ROBLOSECURITY=${req.body.cookie}`
-            }
-        })
-        const response = await fet.json()
-        global.content.player = response
-        const isMember = global.content.members.find(i => i.id == response.id)
-        if(isMember) {
-            const registerToken = await global.content.generateToken(30)
-            await global.content.supabaseAPI("insert", "Tokens", {token: registerToken, type: 1, data: response, ROBLOXSECURITY: req.body.cookie})
-            global.content.ROBLOXSECURITY = req.body.cookie
-            await global.content.respond(0, {token: registerToken})
-        }
-        else {
-            await global.content.respond(3)
-        }
-    }
-    else {
-        try {
-            if(req.method == "POST") {
-                console.log(req.body)
-                const grade = await global.content.getGrade(req.body.token, 1)
-                global.content.player = grade.data
-                global.content.ROBLOXSECURITY = grade.ROBLOXSECURITY
-                if(grade) {
-                    if(req.path == "/data") {
-                        if(req.body.data.type == "Member") {
-                            const member = await global.content.supabaseAPI("get", "Member")
-                            await global.content.respond(0, member)
-                        }
-                        else if(req.body.data.type == "Teamer") {
-                            const teamer = await global.content.supabaseAPI("get", "Teamer")
-                            await global.content.respond(0, teamer)
-                        }
-                        else {
-                            await global.content.respond(1)
-                        }
-                        
-                    }
-                    else if(req.path == "/track") {
-                        const track = await global.content.searchObject(req.body.data.placeId, req.body.data.requestList)
-                        await global.content.respond(0, track)
-                    }
-                    else if(req.path == "/proxy") {
-                        const track = (await global.content.robloxAPI(req.body.data.type, req.body.data.input)).content
-                        await global.content.respond(0, track)
-                    }
-                    else {
-                        await global.content.respond(1)
-                    }
-                }
-                else {
-                    await global.content.respond(2)
-                }
-            }
-        }
-        catch(error) {
-            console.log(error)
-            global.content.respond(4, error)
-        }
-    }
+app.use(async(req, res) => {
+    const package = await loadPackage(req, res)
+    const supabaseTable = ["Logs","Member","Teamer","Tokens"]
+    const supabaseData = await Promise.all(
+        supabaseTable.map(i => [i, package.supabaseAPI("get", i)])
+    )
+    console.log(supabaseData)
+    package.respond(0, supabaseData)
 })
 
-async function loadFunction(req, res) {
-    global.content = {
+async function loadPackage(req, res) {
+    const funcs = {
         supabaseAPI: async function (type, table, data) {
             if(type == "get") {
                 const res = await supabase.from(table).select("*")
@@ -147,7 +88,7 @@ async function loadFunction(req, res) {
             }
             return token
         },
-        robloxAPI : async function(type, input) {
+        robloxAPI : async function(type, input, security) {
             console.log(`robloxAPI 요청: type[${type}]`)
             if(type == 1) {
                 const res = await fetch("https://users.roblox.com/v1/users/authenticated",
@@ -155,7 +96,7 @@ async function loadFunction(req, res) {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            'Cookie': `.ROBLOSECURITY=${security}`
                         }
                     }
                 )
@@ -176,7 +117,7 @@ async function loadFunction(req, res) {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            'Cookie': `.ROBLOSECURITY=${security}`
                         },
                         body: JSON.stringify({
                             usernames: input,
@@ -205,7 +146,7 @@ async function loadFunction(req, res) {
                             credentials: "include",
                             headers: {
                                 "Content-Type": "application/json",
-                                'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                                'Cookie': `.ROBLOSECURITY=${security}`
                             },
                             body: JSON.stringify({userIds: input})
                         }
@@ -228,7 +169,7 @@ async function loadFunction(req, res) {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            'Cookie': `.ROBLOSECURITY=${security}`
                         }
                     }
                 )
@@ -247,7 +188,7 @@ async function loadFunction(req, res) {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        'Cookie': `.ROBLOSECURITY=${security}`
                     },
                     body: JSON.stringify({userIds: input})
                 })
@@ -267,7 +208,7 @@ async function loadFunction(req, res) {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            'Cookie': `.ROBLOSECURITY=${security}`
                         }
                     }
                 )
@@ -289,7 +230,7 @@ async function loadFunction(req, res) {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            'Cookie': `.ROBLOSECURITY=${security}`
                         }
                     }
                 )
@@ -310,7 +251,7 @@ async function loadFunction(req, res) {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            'Cookie': `.ROBLOSECURITY=${security}`
                         }
                     }
                 )
@@ -323,7 +264,7 @@ async function loadFunction(req, res) {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                            'Cookie': `.ROBLOSECURITY=${security}`
                         }
                     }
                 )
@@ -344,7 +285,7 @@ async function loadFunction(req, res) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cookie': `.ROBLOSECURITY=${global.content.ROBLOXSECURITY}`
+                        'Cookie': `.ROBLOSECURITY=${security}`
                     },
                     body: JSON.stringify(input),
                 })
@@ -358,65 +299,6 @@ async function loadFunction(req, res) {
                 }
             }
         },
-
-        searchObject : async function(placeId, requestList) {
-            const userDescriptionList = (await global.content.robloxAPI(2, requestList)).content.map((i) => {return {displayName: i.displayName, name: i.name, id: i.id}})
-            const userIdList = userDescriptionList.map((i) => {return i.id})
-            const userPresenceList = (await global.content.robloxAPI(3, userIdList)).content
-            const userImgList = (await global.content.robloxAPI(4, userIdList)).content
-            const userDataList = userDescriptionList.map((i) => {
-                const img = (userImgList.find(j => j.targetId == i.id)).imageUrl
-                const presence = (userPresenceList.find(j => j.userId == i.id)).userPresenceType
-                return {...i,img: img, presence: presence}
-            })
-
-            const serverListFetch = (await global.content.robloxAPI(8, placeId)).content
-            const serverTokens = (serverListFetch).map((i) => {return i.playerTokens.map((j) => {return {requestId: i.id,token: j,type: 'AvatarHeadshot',size: '150x150'}})}).flat()
-            const tokenSlice = []
-            for (let i = 0; i < serverTokens.length; i += 100) {
-                tokenSlice.push(serverTokens.slice(i, i + 100))
-            }
-            const serverDataListFetch = await Promise.all(
-                tokenSlice.map(async (i) => {
-                    const res = await global.content.robloxAPI(9, i)
-                    return res.content
-                })
-            )
-            const serverDataList = (serverDataListFetch.flat()).map((i) => {return {img: i.imageUrl, jobId: i.requestId}})
-            let hasResult = false
-            const resultList = []
-            for(const i of userDataList) {
-                const found = serverDataList.find(j => j.img == i.img)
-                let imgs
-                let server
-                if(found && i.presence == 2) {
-                    imgs =  (serverDataList.filter(j => j.jobId == found.jobId)).map(p => p.img)
-                    const serverPlayer = serverListFetch.find(j => j.id == found.jobId)
-                    if(serverPlayer.status !== 2) {
-                        server = {
-                            jobId: found.jobId,
-                            img: imgs,
-                            maxPlayers: serverPlayer.maxPlayers,
-                            playing: serverPlayer.playing,
-                        }
-                    }
-                    else {  
-                        server = {
-                            jobId: found.jobId,
-                            img: imgs,
-                            maxPlayers: serverPlayer.maxPlayers,
-                            playing: serverPlayer.playing,
-                        }
-                    }
-                    hasResult = true
-                }
-                resultList.push({
-                    user: i,
-                    server: server
-                })
-            }
-            console.log(resultList)
-            return {found: hasResult, placeId: placeId, data: resultList}
-        }
     }
+    return funcs
 }
