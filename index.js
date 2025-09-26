@@ -400,7 +400,7 @@ async function loadFunction(req, res) {
                             playing: serverPlayer.playing,
                         }
                     }
-                    else {
+                    else {  
                         server = {
                             jobId: found.jobId,
                             img: imgs,
