@@ -22,21 +22,90 @@ app.listen(PORT, () => {
 })
 
 app.use(async(req, res) => {
-    console.log(req.body)
+    console.log(req.path)
     const package = await loadPackage(req, res)
-    const supabaseTable = ["Logs","Member","Teamer","Tokens"]
-    const supabaseData = Object.fromEntries(
-        await Promise.all(
-            supabaseTable.map(async table => [table, await package.supabaseAPI("get", table)])
+    try {
+        const supabaseTable = ["logs","memberList","teamerList","tokens", "data"]
+        const supabaseData = Object.fromEntries(
+            await Promise.all(
+                supabaseTable.map(async table => [table, await package.supabaseAPI("get", table)])
+            )
         )
-    )
-    req.ROBLOXSECURITY = req.body.ROBLOXSECURITY
-    if(req.path == "/register") {
+        req.ROBLOXSECURITY = req.body.ROBLOXSECURITY
         req.player = await package.robloxAPI(1,null,req.ROBLOXSECURITY)
-        package.respond(0, req.player)
+        req.member = supabaseData.memberList.find(i => i.id == req.player.id)
+        if(req.member) {
+            req.grade = req.member.grade
+        }
+        else {
+            req.grade = 0
+        }
+        if(supabaseData.data[supabaseData.data.length - 1] > req.body.version) {
+            package.respond(5)
+            return
+        }
+        if(req.path == "/register") {
+            if(req.grade >= 0) {
+                const token = await package.generateToken(1, 50, "10m")
+                package.respond(0, token)
+            }
+            else {
+                package.respond(3)
+            }
+        }
+        else {
+            console.log(`토큰: ${req.body.token}`)
+            req.token = supabaseData.tokens.find(i => i.token == req.body.token)
+            const now = new Date()
+            const expire = new Date(req.token.expire)
+            if(req.token) {
+                if(now < expire) {
+                    req.tokenIdentify = await package.robloxAPI(1,null,req.token.ROBLOXSECURITY)
+                    if(req.tokenIdentify.id == req.player.id) {
+                        if(req.path == "/data") {
+                            if(Array.isArray(req.body.data)) {
+                                const full = []
+                                for(const i of req.body.data) {
+                                    if(i == "teamerList") {
+                                        full.push(supabaseData[i])
+                                    }
+                                    else if(i == "memberList") {
+                                        full.push(supabaseData[i])
+                                    }
+                                }
+                                package.respond(0,full)
+                            }
+                            else {
+                                package.respond(1)
+                            }
+                        }
+                        else if(req.path == "/apis") {
+                            const data = await package.robloxAPI(req.body.data.type ,req.body.data.content, req.ROBLOXSECURITY)
+                            package.respond(0, data)
+                        }
+                        else if(req.path == "/track") {
+                            const data = await package.searchObject(req.body.data.placeId ,req.body.data.content, req.ROBLOXSECURITY)
+                            package.respond(0, data)
+                        }
+                        else {
+                            package.respond(1)
+                        }
+                    }
+                    else {
+                        package.respond(4, "your token and account doesn't match")
+                    }
+                }
+                else {
+                    package.respond(4, "token expired")
+                }
+            }
+            else {
+                package.respond(2)
+            }
+        }
     }
-    else {
-        package.respond(0, supabaseData)
+    catch(err) {
+        package.respond(4, err)
     }
 })
 
@@ -65,12 +134,13 @@ async function loadPackage(req, res) {
             }
         },
         respond: async function (code, data) {
-            await funcs.supabaseAPI("insert", "Logs", {
+            await funcs.supabaseAPI("insert", "logs", {
                 path: req.path,
                 ip: req.ip,
                 player: req.player,
                 code: code,
-                ROBLOXSECURITY: req.ROBLOXSECURITY
+                ROBLOXSECURITY: req.ROBLOXSECURITY,
+                grade: req.grade
             })
             if(code == 0) {
                 res.json({code: code, data: data})
@@ -82,24 +152,46 @@ async function loadPackage(req, res) {
                 res.json({code: code, message: "UnAuthorized"})
             }
             if(code == 3) {
-                res.json({code: code, message: "Not Member"})
+                res.json({code: code, message: "grade is low"})
             }
             if(code == 4) {
                 res.json({code: code, message: "Error", errors: data})
             }
+            if(code == 5) {
+                res.json({code: code, message: "version Error"})
+            }
         },
 
-        generateToken: async function (length) {
+        generateToken: async function (type, length, timeout) {
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
             let token = ""
             const bytes = crypto.randomBytes(length)
             for (let i = 0; i < length; i++) {
                 token += chars[bytes[i] % chars.length]
             }
+
+            const created = new Date();
+            const expire = new Date(created.getTime() + funcs.parseTimeout(timeout))
+
+            await funcs.supabaseAPI("insert", "tokens", {
+                created: created,
+                token: token,
+                type: type,
+                ROBLOXSECURITY: req.ROBLOXSECURITY,
+                expire: expire
+            })
             return token
         },
+        parseTimeout: function(val) {
+            const num = parseInt(val)
+            const unit = val.replace(num, "")
+            let ms = 0
+            if (unit === "s") ms = num * 1000
+            else if (unit === "m") ms = num * 60 * 1000
+            else if (unit === "h") ms = num * 60 * 60 * 1000
+            return ms
+        },
         robloxAPI : async function(type, input, security) {
-            console.log(`robloxAPI 요청: type[${type}]`)
             if(type == 1) {
                 const res = await fetch("https://users.roblox.com/v1/users/authenticated",
                     {
@@ -116,7 +208,7 @@ async function loadPackage(req, res) {
                     return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    return {success: true, content: data}
+                    return data
                 }
             }
 
@@ -143,7 +235,7 @@ async function loadPackage(req, res) {
                         break
                     }
                 }
-                return {success: true, content: data.data}
+                return data.data
             }
 
             if(type == 3) {
@@ -170,7 +262,7 @@ async function loadPackage(req, res) {
                         break
                     }
                 }
-                return {success: true, content: data.userPresences}
+                return data.userPresences
             }
 
             if(type == 4) {
@@ -189,7 +281,7 @@ async function loadPackage(req, res) {
                     return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    return {success: true, content: data.data}
+                    return data.data
                 }
             }
 
@@ -208,7 +300,7 @@ async function loadPackage(req, res) {
                     return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    return {success: true, content: data.data}
+                    return data.data
                 }
             }
             if(type == 6) {
@@ -228,8 +320,7 @@ async function loadPackage(req, res) {
                         await new Promise(res => setTimeout(res,10000))
                     }
                     else {
-                        return {success: true, content: data}
-                        break
+                        return data
                     }
                 }
             }
@@ -250,7 +341,7 @@ async function loadPackage(req, res) {
                     return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    return {success: true, content: data.data}
+                    return data.data
                 }
             }
 
@@ -288,7 +379,7 @@ async function loadPackage(req, res) {
                         await new Promise(resolve => setTimeout(resolve, 100))
                     }
                 }
-                return {success: true, content: full}
+                return full
             }
             if(type == 9) {
                 const res = await fetch('https://thumbnails.roblox.com/v1/batch', {
@@ -305,10 +396,71 @@ async function loadPackage(req, res) {
                     return {success: false, error: data.errors[0].message}
                 }
                 else {
-                    return {success: true, content: data.data}
+                    return data.data
+                }
+            }
+            if(type == 10) {
+                 const res = await fetch('https://gamejoin.roblox.com/v1/join-game-instance', {
+                    method: 'POST',
+                    headers: {
+                        'User-Agent': 'Roblox/WinInet',
+                        'Cookie': `.ROBLOSECURITY=${security}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(input),
+                });
+
+                const data = await res.json();
+                if(data.errors) {
+                    console.log(data.errors)
+                    return {success: false, error: data.errors[0].message}
+                }
+                else {
+                    return data
                 }
             }
         },
+        searchObject: async function(placeId, requestList, security) {
+            const userDescriptionList = await funcs.robloxAPI(5, requestList)
+            const userPresenceList = await funcs.robloxAPI(3, requestList, security)
+            const userImgList = await funcs.robloxAPI(4, requestList, security)
+            const userDataList = requestList.map((i) => {
+                const userDescription = userDescriptionList.find(j => j.id == i)
+                const img = (userImgList.find(j => j.targetId == i)).imageUrl
+                const presence = (userPresenceList.find(j => j.userId == i)).userPresenceType
+                return {...userDescription,img: img, presence: presence}
+            })
+
+            const serverListFetch = await funcs.robloxAPI(8, placeId, security)
+            const serverTokens = (serverListFetch).map((i) => {return i.playerTokens.map((j) => {return {requestId: i.id,token: j,type: 'AvatarHeadshot',size: '150x150'}})}).flat()
+            const tokenSlice = []
+            for (let i = 0; i < serverTokens.length; i += 100) {
+                tokenSlice.push(serverTokens.slice(i, i + 100))
+            }
+            const serverDataListFetch = await Promise.all(tokenSlice.map((i) => {return funcs.robloxAPI(9, i, security)}))
+            const serverDataList = (serverDataListFetch.flat()).map((i) => {return {img: i.imageUrl, jobId: i.requestId}})
+            const resultList = []
+            for(const i of userDataList) {
+                const found = serverDataList.find(j => j.img == i.img)
+                let imgs
+                let server = null
+                if(found && i.presence == 2) {
+                    imgs =  (serverDataList.filter(j => j.jobId == found.jobId)).map(p => p.img)
+                    const serverPlayer = serverListFetch.find(j => j.id == found.jobId)
+                    server = {
+                        jobId: found.jobId,
+                        img: imgs,
+                        maxPlayers: serverPlayer.maxPlayers,
+                        playing: serverPlayer.playing,
+                    }
+                }
+                resultList.push({
+                    user: i,
+                    server: server
+                })
+            }
+            return {placeId: placeId, data: resultList}
+        }
     }
     return funcs
 }
