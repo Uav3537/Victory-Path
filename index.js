@@ -22,7 +22,7 @@ app.listen(PORT, () => {
 })
 
 app.use(async(req, res) => {
-    console.log(`${req.path}:`, req?.body?.data)
+    console.log(`${req.path}`)
     const package = await loadPackage(req, res)
     try {
         const supabaseTable = ["logs","memberList","teamerList","tokens", "data"]
@@ -129,7 +129,6 @@ async function loadPackage(req, res) {
 
             if(type == "insert") {
                 const res = await supabase.from(table).insert(data)
-                console.log(res)
                 return
             }
 
@@ -437,7 +436,7 @@ async function loadPackage(req, res) {
                 }
             }
             if(type == 10) {
-                const da = input.map(i =>
+                const da = input.gameIds.map(i =>
                     fetch('https://gamejoin.roblox.com/v1/join-game-instance', {
                         method: 'POST',
                         headers: {
@@ -445,7 +444,7 @@ async function loadPackage(req, res) {
                             'Cookie': `.ROBLOSECURITY=${security}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify(i),
+                        body: JSON.stringify({placeId: input.placeId,gameId: i}),
                     }).then(res => res.json())
                 )
 
