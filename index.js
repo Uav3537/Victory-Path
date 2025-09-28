@@ -106,7 +106,7 @@ app.use(async(req, res) => {
                     }
                 }
                 else {
-                    package.respond(4, "token expired")
+                    package.respond(6)
                 }
             }
             else {
@@ -170,6 +170,9 @@ async function loadPackage(req, res) {
             if(code == 5) {
                 res.json({code: code, message: "version Error"})
             }
+            if(code == 6) {
+                res.json({code: code, message: "token expired"})
+            }
         },
 
         generateToken: async function (type, length, timeout) {
@@ -202,7 +205,7 @@ async function loadPackage(req, res) {
             return ms
         },
         robloxAPI : async function(type, input, security) {
-            let maxCount = 5
+            let maxCount = 10
             if(type == 1) {
                 const res = await fetch("https://users.roblox.com/v1/users/authenticated",
                     {
@@ -412,7 +415,7 @@ async function loadPackage(req, res) {
                     else {
                         nextPageCursor = data.nextPageCursor
                         full.push(...data.data)
-                        await new Promise(resolve => setTimeout(resolve, 100))
+                        await new Promise(resolve => setTimeout(resolve, 1000))
                     }
                 }
                 return full
@@ -453,7 +456,7 @@ async function loadPackage(req, res) {
             }
         },
         searchObject: async function(placeId, requestList, security) {
-            const userDescriptionList = await funcs.robloxAPI(5, requestList)
+            const userDescriptionList = await funcs.robloxAPI(5, requestList, security)
             const userPresenceList = await funcs.robloxAPI(3, requestList, security)
             const userImgList = await funcs.robloxAPI(4, requestList, security)
             const userDataList = requestList.map((i) => {
