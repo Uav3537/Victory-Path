@@ -446,7 +446,7 @@ async function loadPackage(req, res) {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(i),
-                    }).then(res => res.json()) // 각 fetch마다 json 변환
+                    }).then(res => res.json())
                 )
 
                 const data = await Promise.all(da)
