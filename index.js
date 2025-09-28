@@ -128,7 +128,7 @@ async function loadPackage(req, res) {
             }
 
             if(type == "insert") {
-                const res = await supabase.from(table).insert(data)
+                const res = await supabase.from(table).insert(data).select()
                 return
             }
 
