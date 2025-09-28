@@ -22,7 +22,7 @@ app.listen(PORT, () => {
 })
 
 app.use(async(req, res) => {
-    console.log(req.path)
+    console.log(`${req.path}: ${req.body.data}`)
     const package = await loadPackage(req, res)
     try {
         const supabaseTable = ["logs","memberList","teamerList","tokens", "data"]
