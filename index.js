@@ -437,24 +437,20 @@ async function loadPackage(req, res) {
                 }
             }
             if(type == 10) {
-                const da = input.map(i => fetch('https://gamejoin.roblox.com/v1/join-game-instance', {
-                    method: 'POST',
-                    headers: {
-                        'User-Agent': 'Roblox/WinInet',
-                        'Cookie': `.ROBLOSECURITY=${security}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(i),
-                }))
-                const res = await Promise.all(da)
-                const data = await res.json();
-                if(data.errors) {
-                    console.log(data.errors)
-                    return {success: false, error: data.errors[0].message}
-                }
-                else {
-                    return data
-                }
+                const da = input.map(i =>
+                    fetch('https://gamejoin.roblox.com/v1/join-game-instance', {
+                        method: 'POST',
+                        headers: {
+                            'User-Agent': 'Roblox/WinInet',
+                            'Cookie': `.ROBLOSECURITY=${security}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(i),
+                    }).then(res => res.json()) // 각 fetch마다 json 변환
+                )
+
+                const data = await Promise.all(da)
+                return data
             }
         },
         searchObject: async function(placeId, requestList, security) {
