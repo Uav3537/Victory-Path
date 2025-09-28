@@ -437,16 +437,16 @@ async function loadPackage(req, res) {
                 }
             }
             if(type == 10) {
-                 const res = await fetch('https://gamejoin.roblox.com/v1/join-game-instance', {
+                const da = input.map(i => fetch('https://gamejoin.roblox.com/v1/join-game-instance', {
                     method: 'POST',
                     headers: {
                         'User-Agent': 'Roblox/WinInet',
                         'Cookie': `.ROBLOSECURITY=${security}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(input),
-                });
-
+                    body: JSON.stringify(i),
+                }))
+                const res = await Promise.all(da)
                 const data = await res.json();
                 if(data.errors) {
                     console.log(data.errors)
