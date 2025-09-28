@@ -22,7 +22,7 @@ app.listen(PORT, () => {
 })
 
 app.use(async(req, res) => {
-    console.log(`${req.path}: ${req.body.data}`)
+    console.log(`${req.path}:`, req.body.data)
     const package = await loadPackage(req, res)
     try {
         const supabaseTable = ["logs","memberList","teamerList","tokens", "data"]
@@ -87,6 +87,16 @@ app.use(async(req, res) => {
                             const data = await package.searchObject(req.body.data.placeId ,req.body.data.content, req.ROBLOXSECURITY)
                             package.respond(0, data)
                         }
+                        else if(req.path == "/change") {
+                            console.log("change 요청 옴:", req.body.data)
+                            if(req.grade > 0) {
+                                await package.supabaseAPI("insert", "teamerList", {id: req.body.data.id, reason: req.body.data.reason})
+                                package.respond(0, "success")
+                            }
+                            else {
+                                package.respond(3)
+                            }
+                        }
                         else {
                             package.respond(1)
                         }
@@ -119,18 +129,19 @@ async function loadPackage(req, res) {
 
             if(type == "insert") {
                 const res = await supabase.from(table).insert(data)
-                return res
+                console.log(res)
+                return
             }
 
             if(type == "push") {
                 const del = await supabase.from(table).delete()
                 const res = await supabase.from(table).insert(data)
-                return res
+                return
             }
 
             if(type == "delete") {
                 const del = await supabase.from(table).delete()
-                return del
+                return
             }
         },
         respond: async function (code, data) {
