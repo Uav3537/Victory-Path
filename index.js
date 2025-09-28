@@ -47,7 +47,7 @@ app.use(async(req, res) => {
         if(req.path == "/register") {
             if(req.grade >= 0) {
                 const token = await package.generateToken(1, 50, "10m")
-                package.respond(0, token)
+                package.respond(0, {token: token, grade: req.grade})
             }
             else {
                 package.respond(3)
@@ -192,6 +192,7 @@ async function loadPackage(req, res) {
             return ms
         },
         robloxAPI : async function(type, input, security) {
+            let maxCount = 5
             if(type == 1) {
                 const res = await fetch("https://users.roblox.com/v1/users/authenticated",
                     {
@@ -228,7 +229,11 @@ async function loadPackage(req, res) {
                     })
                     data = await res.json()
                     if(data.errors) {
+                        maxCount = maxCount - 1
                         console.log(data.errors)
+                        if(maxCount <= 0) {
+                            return {success: false, data: "Max Count Achieved"}
+                        }
                         await new Promise(res => setTimeout(res, 5000))
                     }
                     else {
@@ -255,7 +260,11 @@ async function loadPackage(req, res) {
                     )
                     data = await res.json()
                     if(data.errors) {
+                        maxCount = maxCount - 1
                         console.log(data.errors)
+                        if(maxCount <= 0) {
+                            return {success: false, data: "Max Count Achieved"}
+                        }
                         await new Promise(res => setTimeout(res, 2000))
                     }
                     else {
@@ -266,82 +275,99 @@ async function loadPackage(req, res) {
             }
 
             if(type == 4) {
-                const res = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${input.join(",")}&size=150x150&format=Png`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${security}`
+                while(true) {
+                    const res = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${input.join(",")}&size=150x150&format=Png`,
+                        {
+                            method: "GET",
+                            headers: {
+                                "Content-Type": "application/json",
+                                'Cookie': `.ROBLOSECURITY=${security}`
+                            }
                         }
+                    )
+                    const data = await res.json()
+                    if(data.errors) {
+                        maxCount = maxCount - 1
+                        console.log(data.errors)
+                        if(maxCount <= 0) {
+                            return {success: false, data: "Max Count Achieved"}
+                        }
+                        await new Promise(res => setTimeout(res, 2000))
                     }
-                )
-                const data = await res.json()
-                if(data.errors) {
-                    console.log(data.errors)
-                    return {success: false, error: data.errors[0].message}
-                }
-                else {
-                    return data.data
+                    else {
+                        return data.data
+                    }
                 }
             }
 
             if(type == 5) {
-                const res = await fetch("https://users.roblox.com/v1/users", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        'Cookie': `.ROBLOSECURITY=${security}`
-                    },
-                    body: JSON.stringify({userIds: input})
-                })
-                const data = await res.json()
-                if(data.errors) {
-                    console.log(data.errors)
-                    return {success: false, error: data.errors[0].message}
-                }
-                else {
-                    return data.data
-                }
-            }
-            if(type == 6) {
                 while(true) {
-                    const res = await fetch(`https://users.roblox.com/v1/users/${input}`,
-                    {
-                        method: "GET",
+                    const res = await fetch("https://users.roblox.com/v1/users", {
+                        method: "POST",
                         headers: {
                             "Content-Type": "application/json",
                             'Cookie': `.ROBLOSECURITY=${security}`
-                        }
-                    }
-                )
+                        },
+                        body: JSON.stringify({userIds: input})
+                    })
                     const data = await res.json()
                     if(data.errors) {
+                        maxCount = maxCount - 1
                         console.log(data.errors)
-                        await new Promise(res => setTimeout(res,10000))
+                        if(maxCount <= 0) {
+                            return {success: false, data: "Max Count Achieved"}
+                        }
+                        await new Promise(r => setTimeout(r, 10000))
                     }
                     else {
-                        return data
+                        return data.data
                     }
                 }
             }
-
-            if(type == 7) {
-                const res = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${security}`
+            if (type == 6) {
+                const results = await Promise.all(input.map(async(id) => {
+                    while (true) {
+                        const res = await fetch(`https://users.roblox.com/v1/users/${id}`, {
+                            method: "GET",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Cookie": `.ROBLOSECURITY=${security}`
+                            }
+                        })
+                        const data = await res.json()
+                        if (data.errors) {
+                            maxCount = maxCount - 1
+                            console.log("retrying:", id, data.errors)
+                            await new Promise(r => setTimeout(r, 10000))
+                        } else {
+                            return data
                         }
                     }
-                )
-                const data = await res.json()
-                if(data.errors) {
-                    console.log(data.errors)
-                    return {success: false, error: data.errors[0].message}
-                }
-                else {
-                    return data.data
+                }))
+                return results
+            }
+            if(type == 7) {
+                while(true) {
+                    const res = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`,
+                        {
+                            method: "GET",
+                            headers: {
+                                "Content-Type": "application/json",
+                                'Cookie': `.ROBLOSECURITY=${security}`
+                            }
+                        }
+                    )
+                    const data = await res.json()
+                    if(data.errors) {
+                        maxCount = maxCount - 1
+                        console.log(data.errors)
+                        if(maxCount <= 0) {
+                            return {success: false, data: "Max Count Achieved"}
+                        }
+                    }
+                    else {
+                        return data.data
+                    }
                 }
             }
 
