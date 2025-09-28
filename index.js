@@ -54,7 +54,6 @@ app.use(async(req, res) => {
             }
         }
         else {
-            console.log(`토큰: ${req.body.token}`)
             req.token = supabaseData.tokens.find(i => i.token == req.body.token)
             const now = new Date()
             const expire = new Date(req.token.expire)
@@ -88,7 +87,6 @@ app.use(async(req, res) => {
                             package.respond(0, data)
                         }
                         else if(req.path == "/change") {
-                            console.log("change 요청 옴:", req.body.data)
                             if(req.grade > 0) {
                                 await package.supabaseAPI("insert", "teamerList", {id: req.body.data.id, reason: req.body.data.reason})
                                 package.respond(0, "success")
