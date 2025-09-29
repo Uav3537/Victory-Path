@@ -79,6 +79,9 @@ app.use(async(req, res) => {
                                     else if(i == "memberList") {
                                         full.push(supabaseData[i])
                                     }
+                                    else if(i == "logs" && req.grade >=3) {
+                                        full.push(supabaseData[i])
+                                    }
                                 }
                                 package.respond(0,full)
                             }
