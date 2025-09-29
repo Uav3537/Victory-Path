@@ -17,6 +17,14 @@ app.use(cors({ origin: '*' }))
 app.use(express.json())
 app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
 
+app.use((req, res, next) => {
+  console.log("✅ Client IP:", req.ip);
+  console.log("Raw Forwarded For:", req.headers['x-forwarded-for']);
+  next();
+});
+
+app.set('trust proxy', true);
+
 app.listen(PORT, () => {
   console.log(`✅Server running on port ${PORT}`);
 })
