@@ -73,10 +73,10 @@ app.use(async(req, res) => {
                             if(Array.isArray(req.body.data)) {
                                 const full = []
                                 for(const i of req.body.data) {
-                                    if(i == "teamerList" >= 0) {
+                                    if(i == "teamerList" && req.grade >= 0) {
                                         full.push(supabaseData[i])
                                     }
-                                    else if(i == "memberList" >= 0) {
+                                    else if(i == "memberList" && req.grade >= 0) {
                                         full.push(supabaseData[i])
                                     }
                                     else if(i == "logs" && req.grade >= 3) {
