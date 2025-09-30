@@ -82,6 +82,9 @@ app.use(async(req, res) => {
                                     else if(i == "logs" && req.grade >= 3) {
                                         full.push(supabaseData[i])
                                     }
+                                    else {
+                                        full.push({success: false})
+                                    }
                                 }
                                 package.respond(0,full)
                             }
@@ -99,8 +102,13 @@ app.use(async(req, res) => {
                         }
                         else if(req.path == "/change") {
                             if(req.grade > 0) {
-                                await package.supabaseAPI("insert", "teamerList", {id: req.body.data.id, reason: req.body.data.reason})
-                                package.respond(0, "success")
+                                if(Number.isFinite(req.body.data.id) && Array.isArray(req.body.data.reason) && req.body.data.reason.length > 0) {
+                                    await package.supabaseAPI("insert", "teamerList", {id: req.body.data.id, reason: req.body.data.reason})
+                                    package.respond(0, "success")
+                                }
+                                else {
+                                    package.respond(1)
+                                }
                             }
                             else {
                                 package.respond(3)
