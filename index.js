@@ -83,8 +83,8 @@ app.use(async(req, res) => {
                                         full.push(supabaseData[i])
                                     }
                                     else if(i == "reasons", req.grade >= 0) {
-                                        const reasons = supabaseData["data"].reasons
-                                        full.push(reasons)
+                                        const reasons = supabaseData["data"]
+                                        full.push(reasons[reasons.length - 1].reasons)
                                     }
                                     else {
                                         full.push({success: false})
