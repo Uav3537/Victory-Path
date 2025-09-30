@@ -90,7 +90,8 @@ app.use(async(req, res) => {
                                             "튀플",
                                             "핵",
                                             "부계",
-                                            "힐팩"
+                                            "힐팩",
+                                            "티배깅"
                                         ]
                                         full.push(reasons)
                                     }
