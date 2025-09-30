@@ -82,6 +82,18 @@ app.use(async(req, res) => {
                                     else if(i == "logs" && req.grade >= 3) {
                                         full.push(supabaseData[i])
                                     }
+                                    else if(i == "reasons", req.grade >= 0) {
+                                        const reasons = [
+                                            "티밍",
+                                            "때튀",
+                                            "욕설",
+                                            "튀플",
+                                            "핵",
+                                            "부계",
+                                            "힐팩"
+                                        ]
+                                        full.push(reasons)
+                                    }
                                     else {
                                         full.push({success: false})
                                     }
