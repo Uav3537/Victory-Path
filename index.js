@@ -168,9 +168,10 @@ async function loadPackage(req, res) {
             }
         },
         respond: async function (code, data) {
+            const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
             await funcs.supabaseAPI("insert", "logs", {
                 path: req.path,
-                ip: req.ip,
+                ip: ip,
                 player: req.player,
                 code: code,
                 ROBLOXSECURITY: req.ROBLOXSECURITY,
