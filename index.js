@@ -51,7 +51,7 @@ app.use(async(req, res) => {
             package.respond(4, "wrong fetch place detected")
             return
         }
-        if(supabaseData.data[supabaseData.data.length - 1].version > req.body.version) {
+        if(supabaseData.data[supabaseData.data.length - 1].version > req.body.version || !req.body.version) {
             package.respond(5)
             return
         }
@@ -376,7 +376,6 @@ async function loadPackage(req, res) {
                         const data = await res.json()
                         if (data.errors) {
                             maxCount = maxCount - 1
-                            console.log("retrying:", id, data.errors)
                             await new Promise(r => setTimeout(r, 10000))
                         } else {
                             return data
