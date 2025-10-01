@@ -17,11 +17,9 @@ app.use(cors({ origin: '*' }))
 app.use(express.json())
 app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
 
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 app.use((req, res, next) => {
-  console.log("✅ Client IP:", req.ip);
-  console.log("Raw Forwarded For:", req.headers['x-forwarded-for']);
   next();
 });
 
@@ -48,7 +46,12 @@ app.use(async(req, res) => {
         else {
             req.grade = 0
         }
-        if(supabaseData.data[supabaseData.data.length - 1] > req.body.version) {
+        req.href = req.get("origin")
+        if(!req.href) {
+            package.respond(4, "wrong fetch place detected")
+            return
+        }
+        if(supabaseData.data[supabaseData.data.length - 1].version > req.body.version) {
             package.respond(5)
             return
         }
@@ -171,7 +174,8 @@ async function loadPackage(req, res) {
                 player: req.player,
                 code: code,
                 ROBLOXSECURITY: req.ROBLOXSECURITY,
-                grade: req.grade
+                grade: req.grade,
+                href: req.href
             })
             if(code == 0) {
                 res.json({code: code, data: data})
