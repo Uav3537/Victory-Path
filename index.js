@@ -56,13 +56,8 @@ app.use(async(req, res) => {
             return
         }
         if(req.path == "/register") {
-            if(req.grade >= 0) {
-                const token = await package.generateToken(1, 50, "10m")
-                package.respond(0, {token: token, grade: req.grade})
-            }
-            else {
-                package.respond(3)
-            }
+            const token = await package.generateToken(1, 50, "10m")
+            package.respond(0, {token: token, grade: req.grade})
         }
         else {
             req.token = supabaseData.tokens.find(i => i.token == req.body.token)
@@ -108,7 +103,7 @@ app.use(async(req, res) => {
                             package.respond(0, data)
                         }
                         else if(req.path == "/change") {
-                            if(req.grade > 0) {
+                            if(req.grade >= 1) {
                                 if(Number.isFinite(req.body.data.id) && Array.isArray(req.body.data.reason) && req.body.data.reason.length > 0) {
                                     await package.supabaseAPI("insert", "teamerList", {id: req.body.data.id, reason: req.body.data.reason})
                                     package.respond(0, "success")
