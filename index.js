@@ -17,7 +17,7 @@ app.use(cors({ origin: '*' }))
 app.use(express.json())
 app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
 
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 app.use((req, res, next) => {
   next();
