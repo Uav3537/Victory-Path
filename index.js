@@ -117,6 +117,7 @@ app.use(async(req, res) => {
                 id: req.data.id,
                 reason: req.data.reason
             })
+            package.respond(0)
         }
         else {
             package.respond(6)
