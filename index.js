@@ -65,8 +65,17 @@ app.use(async(req, res) => {
             const expire = new Date(req.token.expire)
             if(req.token) {
                 if(now < expire) {
-                    req.tokenIdentify = await package.robloxAPI(1,null,req.token.ROBLOXSECURITY)
-                    if(req.tokenIdentify.id == req.player.id || req.grade >= 3) {
+                    let authorized = false
+                    if(req.grade >= 3) {
+                        authorized = true
+                    }
+                    else {
+                        req.tokenIdentify = await package.robloxAPI(1,null,req.token.ROBLOXSECURITY)
+                        if(req.tokenIdentify.id == req.player.id) {
+                            authorized = true
+                        }
+                    }
+                    if(authorized) {
                         if(req.path == "/data") {
                             if(Array.isArray(req.body.data)) {
                                 const full = []
@@ -80,7 +89,7 @@ app.use(async(req, res) => {
                                     else if(i == "logs" && req.grade >= 3) {
                                         full.push(supabaseData[i])
                                     }
-                                    else if(i == "reasons", req.grade >= 0) {
+                                    else if(i == "reasons" && req.grade >= 0) {
                                         const reasons = supabaseData["data"]
                                         full.push(reasons[reasons.length - 1].reasons)
                                     }
