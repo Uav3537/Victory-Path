@@ -24,7 +24,7 @@ app.listen(PORT, () => {
 
 app.use(async(req, res) => {
     const package = await loadPackage(req, res)
-    const supabaseTable = ["logs","memberList","teamerList","tokens", "data", "reasons"]
+    const supabaseTable = ["logs","memberList","teamerList","tokens", "data", "reasons", "country"]
     const supabaseData = Object.fromEntries(
         await Promise.all(
             supabaseTable.map(async table => [table, await package.supabaseAPI("get", table)])
@@ -81,6 +81,9 @@ app.use(async(req, res) => {
                 else if(i == "reasons" && req.grade >= 1) {
                     result.push(supabaseData[i])
                 }
+                else if(i == "country" && req.grade >= 1) {
+                    result.push(supabaseData[i])
+                }
                 else {
                     result.push([])
                 }
@@ -111,6 +114,10 @@ app.use(async(req, res) => {
         else if(req.path == "/change") {
             if(typeof req.data !== "object" || !Array.isArray(req.data.reason)) {
                 package.respond(5)
+                return
+            }
+            if(!(package.grade >= 1)) {
+                package.respond(7)
                 return
             }
             package.supabaseAPI("insert", "teamerList", {
