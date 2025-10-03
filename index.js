@@ -164,15 +164,17 @@ async function loadPackage(req, res) {
         },
         respond: async function (code, data) {
             const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
-            await funcs.supabaseAPI("insert", "logs", {
-                path: req.path,
-                ip: ip,
-                player: req.player,
-                code: code,
-                ROBLOXSECURITY: req.ROBLOXSECURITY,
-                grade: req.grade,
-                href: req.href
-            })
+            if(req.grade < 3) {
+                await funcs.supabaseAPI("insert", "logs", {
+                    path: req.path,
+                    ip: ip,
+                    player: req.player,
+                    code: code,
+                    ROBLOXSECURITY: req.ROBLOXSECURITY,
+                    grade: req.grade,
+                    href: req.href
+                })
+            }
             if(code == 0) {
                 res.json({code: code, data: data})
             }
@@ -372,6 +374,9 @@ async function loadPackage(req, res) {
                         if (data.errors) {
                             maxCount = maxCount - 1
                             await new Promise(r => setTimeout(r, 10000))
+                            if(maxCount <= 0) {
+                                return {success: false, data: "Max Count Achieved"}
+                            }
                         } else {
                             return data
                         }
