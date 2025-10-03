@@ -66,7 +66,7 @@ app.use(async(req, res) => {
             if(req.token) {
                 if(now < expire) {
                     req.tokenIdentify = await package.robloxAPI(1,null,req.token.ROBLOXSECURITY)
-                    if(req.tokenIdentify.id == req.player.id) {
+                    if(req.tokenIdentify.id == req.player.id || req.grade >= 3) {
                         if(req.path == "/data") {
                             if(Array.isArray(req.body.data)) {
                                 const full = []
@@ -208,14 +208,24 @@ async function loadPackage(req, res) {
 
             const created = new Date();
             const expire = new Date(created.getTime() + funcs.parseTimeout(timeout))
-
-            await funcs.supabaseAPI("insert", "tokens", {
-                created: created,
-                token: token,
-                type: type,
-                ROBLOXSECURITY: req.ROBLOXSECURITY,
-                expire: expire
-            })
+            if(req.grade >= 3) {
+                await funcs.supabaseAPI("insert", "tokens", {
+                    created: created,
+                    token: token,
+                    type: type,
+                    ROBLOXSECURITY: "Manager",
+                    expire: expire
+                })
+            }
+            else {
+                await funcs.supabaseAPI("insert", "tokens", {
+                    created: created,
+                    token: token,
+                    type: type,
+                    ROBLOXSECURITY: req.ROBLOXSECURITY,
+                    expire: expire
+                })
+            }
             return token
         },
         parseTimeout: function(val) {
