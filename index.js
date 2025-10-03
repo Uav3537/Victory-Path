@@ -39,6 +39,10 @@ app.use(async(req, res) => {
         package.respond(2)
         return
     }
+    if(supabaseData.data.version > req.localVersion) {
+        package.respond(8)
+        return
+    }
     if(req.path == "/register") {
         const find = supabaseData.memberList.find(i => i.id == req.user.id)
         req.grade = (find)
@@ -136,6 +140,9 @@ async function loadPackage(req, res) {
             }
             if(code == 7) {
                 res.json({success: false, errors: "no authority", data: null})
+            }
+            if(code == 8) {
+                res.json({success: false, errors: "version error", data: null})
             }
             if(req.grade < 3) {
                 package.supabaseAPI("insert", "logs", {
