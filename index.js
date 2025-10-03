@@ -113,7 +113,7 @@ app.use(async(req, res) => {
                 package.respond(5)
                 return
             }
-            package.supabaseAPI("insert", {
+            package.supabaseAPI("insert", "teamerList", {
                 id: req.data.id,
                 reason: req.data.reason
             })
