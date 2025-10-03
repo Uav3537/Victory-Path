@@ -101,12 +101,22 @@ app.use(async(req, res) => {
             }
         }
         else if(req.path == "/track") {
-            if(typeof req.data !== "object" || typeof req.data?.placeId !== "string" || !Array.isArray(req.data?.content)) {
+            if(typeof req.data !== "object" || !Array.isArray(req.data?.content)) {
                 package.respond(5)
                 return
             }
             const fet = await package.searchObject(req.data.placeId, req.data.content)
             package.respond(0, fet)
+        }
+        else if(req.path == "/change") {
+            if(typeof req.data !== "object" || !Array.isArray(req.data.reason)) {
+                package.respond(5)
+                return
+            }
+            package.supabaseAPI("insert", {
+                id: req.data.id,
+                reason: req.data.reason
+            })
         }
         else {
             package.respond(6)
