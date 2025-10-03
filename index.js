@@ -4,7 +4,6 @@ const supabase = createClient(
     config.supabase.url,
     config.supabase.serviceKey
 )
-console.log(config)
 const crypto = require('crypto');
 
 const express = require('express')
@@ -19,136 +18,126 @@ app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
 
 app.set('trust proxy', true);
 
-app.use((req, res, next) => {
-  next();
-});
-
 app.listen(PORT, () => {
   console.log(`✅Server running on port ${PORT}`);
 })
 
 app.use(async(req, res) => {
-    console.log(`${req.path}`)
     const package = await loadPackage(req, res)
-    try {
-        const supabaseTable = ["logs","memberList","teamerList","tokens", "data"]
-        const supabaseData = Object.fromEntries(
-            await Promise.all(
-                supabaseTable.map(async table => [table, await package.supabaseAPI("get", table)])
-            )
+    const supabaseTable = ["logs","memberList","teamerList","tokens", "data", "reasons"]
+    const supabaseData = Object.fromEntries(
+        await Promise.all(
+            supabaseTable.map(async table => [table, await package.supabaseAPI("get", table)])
         )
-        req.ROBLOXSECURITY = req.body.ROBLOXSECURITY
-        req.player = await package.robloxAPI(1,null,req.ROBLOXSECURITY)
-        req.member = supabaseData.memberList.find(i => i.id == req.player.id)
-        if(req.member) {
-            req.grade = req.member.grade
-        }
-        else {
-            req.grade = 0
-        }
-        req.href = req.get("origin")
-        if(!req.href) {
-            package.respond(4, "wrong fetch place detected")
+    )
+    const rosecurity = req.body.rosecurity
+    req.localVersion = req.body.version
+    req.token = req.body.token
+    req.data = req.body.data
+    const user = await package.robloxAPI("authorization", rosecurity)
+    if(user.errors) {
+        package.respond(2)
+        return
+    }
+    if(req.path == "/register") {
+        const find = supabaseData.memberList.find(i => i.id == user.id)
+        req.grade = (find)
+            ? find.grade
+            : 1
+        const generated = await package.generateToken(1, 50, "10m")
+        package.respond(0, {token: generated, grade: req.grade})
+    }
+    else {
+        const find = supabaseData.tokens.find(i => i.token == req.token || i.rosecurity == rosecurity)
+        if(!find) {
+            package.respond(3)
             return
         }
-        if(supabaseData.data[supabaseData.data.length - 1].version > req.body.version || !req.body.version) {
-            package.respond(5)
+        req.grade = find.grade
+        const now = new Date()
+        const expire = new Date(req.token.expire)
+        if(now > expire) {
+            package.respond(4)
             return
         }
-        if(req.path == "/register") {
-            const token = await package.generateToken(1, 50, "10m")
-            package.respond(0, {token: token, grade: req.grade})
-        }
-        else {
-            req.token = supabaseData.tokens.find(i => i.token == req.body.token)
-            const now = new Date()
-            const expire = new Date(req.token.expire)
-            if(req.token) {
-                if(now < expire) {
-                    let authorized = false
-                    if(req.grade >= 3) {
-                        authorized = true
-                    }
-                    else {
-                        req.tokenIdentify = await package.robloxAPI(1,null,req.token.ROBLOXSECURITY)
-                        if(req.tokenIdentify.id == req.player.id) {
-                            authorized = true
-                        }
-                    }
-                    if(authorized) {
-                        if(req.path == "/data") {
-                            if(Array.isArray(req.body.data)) {
-                                const full = []
-                                for(const i of req.body.data) {
-                                    if(i == "teamerList" && req.grade >= 0) {
-                                        full.push(supabaseData[i])
-                                    }
-                                    else if(i == "memberList" && req.grade >= 0) {
-                                        full.push(supabaseData[i])
-                                    }
-                                    else if(i == "logs" && req.grade >= 3) {
-                                        full.push(supabaseData[i])
-                                    }
-                                    else if(i == "reasons" && req.grade >= 0) {
-                                        const reasons = supabaseData["data"]
-                                        full.push(reasons[reasons.length - 1].reasons)
-                                    }
-                                    else {
-                                        full.push({success: false})
-                                    }
-                                }
-                                package.respond(0,full)
-                            }
-                            else {
-                                package.respond(1)
-                            }
-                        }
-                        else if(req.path == "/apis") {
-                            const data = await package.robloxAPI(req.body.data.type ,req.body.data.content, req.ROBLOXSECURITY)
-                            package.respond(0, data)
-                        }
-                        else if(req.path == "/track") {
-                            const data = await package.searchObject(req.body.data.placeId ,req.body.data.content, req.ROBLOXSECURITY)
-                            package.respond(0, data)
-                        }
-                        else if(req.path == "/change") {
-                            if(req.grade >= 1) {
-                                if(Number.isFinite(req.body.data.id) && Array.isArray(req.body.data.reason) && req.body.data.reason.length > 0) {
-                                    await package.supabaseAPI("insert", "teamerList", {id: req.body.data.id, reason: req.body.data.reason})
-                                    package.respond(0, "success")
-                                }
-                                else {
-                                    package.respond(1)
-                                }
-                            }
-                            else {
-                                package.respond(3)
-                            }
-                        }
-                        else {
-                            package.respond(1)
-                        }
-                    }
-                    else {
-                        package.respond(4, "your token and account doesn't match")
-                    }
+        console.log(`${user.name} [등급: ${req.grade}]의 요청: ${req.path}`)
+        if(req.path == "/data") {
+            if(!Array.isArray(req.data)) {
+                package.respond(5)
+                return
+            } 
+            const result = []
+            for(const i of req.data) {
+                if(i == "teamerList" && req.grade >= 1) {
+                    result.push(supabaseData[i])
+                }
+                else if(i == "memberList" && req.grade >= 1) {
+                    result.push(supabaseData[i])
+                }
+                else if(i == "reasons" && req.grade >= 1) {
+                    result.push(supabaseData[i])
                 }
                 else {
-                    package.respond(6)
+                    result.push([])
                 }
             }
+            package.respond(0, result)
+        }
+        else if(req.path == "/apis") {
+            if(typeof req.data !== "object" || typeof req.data?.type !== "string") {
+                package.respond(5)
+                return
+            }
+            if(req.grade >= 1) {
+                const fet = await package.robloxAPI(req.data.type, req.data.content)
+                package.respond(0, fet)
+            }
             else {
-                package.respond(2)
+                package.respond(7)
             }
         }
-    }
-    catch(err) {
-        package.respond(4, err)
+        else if(req.path == "/track") {
+            if(typeof req.data !== "object" || typeof req.data?.placeId !== "string" || !Array.isArray(req.data?.content)) {
+                package.respond(5)
+                return
+            }
+            const fet = await package.searchObject(req.data.placeId, req.data.content)
+            package.respond(0, fet)
+        }
+        else {
+            package.respond(6)
+        }
     }
 })
 
 async function loadPackage(req, res) {
-    const funcs = {
+    const package = {
+        respond: function(code, message) {
+            if(code == 0) {
+                res.json({success: true, errors: null, data: message})
+            }
+            if(code == 1) {
+                res.json({success: false, errors: message, data: null})
+            }
+            if(code == 2) {
+                res.json({success: false, errors: "not authorized", data: null})
+            }
+            if(code == 3) {
+                res.json({success: false, errors: "no token found", data: null})
+            }
+            if(code == 4) {
+                res.json({success: false, errors: "token expired", data: null})
+            }
+            if(code == 5) {
+                res.json({success: false, errors: "wrong request", data: null})
+            }
+            if(code == 6) {
+                res.json({success: false, errors: "path error", data: null})
+            }
+            if(code == 7) {
+                res.json({success: false, errors: "no authority", data: null})
+            }
+        },
         supabaseAPI: async function (type, table, data) {
             if(type == "get") {
                 const res = await supabase.from(table).select("*")
@@ -159,54 +148,7 @@ async function loadPackage(req, res) {
                 const res = await supabase.from(table).insert(data).select()
                 return
             }
-
-            if(type == "push") {
-                const del = await supabase.from(table).delete()
-                const res = await supabase.from(table).insert(data)
-                return
-            }
-
-            if(type == "delete") {
-                const del = await supabase.from(table).delete()
-                return
-            }
         },
-        respond: async function (code, data) {
-            const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
-            if(req.grade < 3) {
-                await funcs.supabaseAPI("insert", "logs", {
-                    path: req.path,
-                    ip: ip,
-                    player: req.player,
-                    code: code,
-                    ROBLOXSECURITY: req.ROBLOXSECURITY,
-                    grade: req.grade,
-                    href: req.href
-                })
-            }
-            if(code == 0) {
-                res.json({code: code, data: data})
-            }
-            if(code == 1) {
-                res.json({code: code, message: "Wrong Request"})
-            }
-            if(code == 2) {
-                res.json({code: code, message: "UnAuthorized"})
-            }
-            if(code == 3) {
-                res.json({code: code, message: "grade is low"})
-            }
-            if(code == 4) {
-                res.json({code: code, message: "Error", errors: data})
-            }
-            if(code == 5) {
-                res.json({code: code, message: "version Error"})
-            }
-            if(code == 6) {
-                res.json({code: code, message: "token expired"})
-            }
-        },
-
         generateToken: async function (type, length, timeout) {
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
             let token = ""
@@ -216,23 +158,25 @@ async function loadPackage(req, res) {
             }
 
             const created = new Date();
-            const expire = new Date(created.getTime() + funcs.parseTimeout(timeout))
+            const expire = new Date(created.getTime() + package.parseTimeout(timeout))
             if(req.grade >= 3) {
-                await funcs.supabaseAPI("insert", "tokens", {
+                await package.supabaseAPI("insert", "tokens", {
                     created: created,
                     token: token,
                     type: type,
-                    ROBLOXSECURITY: "Manager",
-                    expire: expire
+                    rosecurity: "Manager",
+                    expire: expire,
+                    grade: req.grade
                 })
             }
             else {
-                await funcs.supabaseAPI("insert", "tokens", {
+                await package.supabaseAPI("insert", "tokens", {
                     created: created,
                     token: token,
                     type: type,
-                    ROBLOXSECURITY: req.ROBLOXSECURITY,
-                    expire: expire
+                    rosecurity: req.rosecurity,
+                    expire: expire,
+                    grade: req.grade
                 })
             }
             return token
@@ -246,300 +190,314 @@ async function loadPackage(req, res) {
             else if (unit === "h") ms = num * 60 * 60 * 1000
             return ms
         },
-        robloxAPI : async function(type, input, security) {
-            let maxCount = 10
-            if(type == 1) {
-                const res = await fetch("https://users.roblox.com/v1/users/authenticated",
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${security}`
-                        }
-                    }
-                )
-                const data = await res.json()
-                if(data.errors) {
-                    console.log(data.errors)
-                    return {success: false, error: data.errors[0].message}
-                }
-                else {
-                    return data
-                }
+        sliceArray: function(array, chunkSize) {
+            const result = []
+            for (let i = 0; i < array.length; i += chunkSize) {
+                result.push(array.slice(i, i + chunkSize))
             }
-
-            if(type == 2) {
-                let data = null
-                while(true) {
-                    const res = await fetch("https://users.roblox.com/v1/usernames/users", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${security}`
-                        },
-                        body: JSON.stringify({
-                            usernames: input,
-                            excludeBannedUsers: false
-                        })
-                    })
-                    data = await res.json()
-                    if(data.errors) {
-                        maxCount = maxCount - 1
-                        console.log(data.errors)
-                        if(maxCount <= 0) {
-                            return {success: false, data: "Max Count Achieved"}
-                        }
-                        await new Promise(res => setTimeout(res, 5000))
-                    }
-                    else {
-                        break
-                    }
-                }
-                return data.data
+            return result
+        },
+        robloxAPI: async function(type, input) {
+            const headers = {
+                "Content-Type": "application/json",
+                'Cookie': `.ROBLOSECURITY=${input}`
             }
-
-            if(type == 3) {
-                let data = null
-                while(true) {
-                    const res = await fetch(
-                        "https://presence.roblox.com/v1/presence/users",
-                        {
-                            method: "POST",
-                            credentials: "include",
-                            headers: {
-                                "Content-Type": "application/json",
-                                'Cookie': `.ROBLOSECURITY=${security}`
-                            },
-                            body: JSON.stringify({userIds: input})
-                        }
-                    )
-                    data = await res.json()
-                    if(data.errors) {
-                        maxCount = maxCount - 1
-                        console.log(data.errors)
-                        if(maxCount <= 0) {
-                            return {success: false, data: "Max Count Achieved"}
-                        }
-                        await new Promise(res => setTimeout(res, 2000))
-                    }
-                    else {
-                        break
-                    }
+            let fet = null
+            let res = null
+            if(type == "authorization") {
+                if(typeof input !== "string") {
+                    throw new Error("텍스트가 아님")
                 }
-                return data.userPresences
+                fet = await fetch(`https://users.roblox.com/v1/users/authenticated`, {
+                    method: "GET",
+                    headers: headers
+                })
+                res = await fet.json()
             }
-
-            if(type == 4) {
-                while(true) {
-                    const res = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${input.join(",")}&size=150x150&format=Png`,
-                        {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                                'Cookie': `.ROBLOSECURITY=${security}`
+            else if(type == "usernames") {
+                if(!Array.isArray(input)) {
+                    throw new Error("배열이 아님")
+                }
+                const slice = package.sliceArray(input, 100)
+                res = await Promise.all(slice.map(async(i) => {
+                    for(let j = 5;j>0;j=j-1) {
+                        try {
+                            fet = await fetch(`https://users.roblox.com/v1/usernames/users`, {
+                                method: "POST",
+                                headers: headers,
+                                body: JSON.stringify({
+                                    usernames: i,
+                                    excludeBannedUsers: false
+                                })
+                            })
+                            const result = await fet.json()
+                            if(result.errors) {
+                                throw new Error(result.errors[0]);
                             }
+                            return result.data
                         }
-                    )
-                    const data = await res.json()
-                    if(data.errors) {
-                        maxCount = maxCount - 1
-                        console.log(data.errors)
-                        if(maxCount <= 0) {
-                            return {success: false, data: "Max Count Achieved"}
-                        }
-                        await new Promise(res => setTimeout(res, 2000))
-                    }
-                    else {
-                        return data.data
-                    }
-                }
-            }
-
-            if(type == 5) {
-                while(true) {
-                    const res = await fetch("https://users.roblox.com/v1/users", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${security}`
-                        },
-                        body: JSON.stringify({userIds: input})
-                    })
-                    const data = await res.json()
-                    if(data.errors) {
-                        maxCount = maxCount - 1
-                        console.log(data.errors)
-                        if(maxCount <= 0) {
-                            return {success: false, data: "Max Count Achieved"}
-                        }
-                        await new Promise(r => setTimeout(r, 10000))
-                    }
-                    else {
-                        return data.data
-                    }
-                }
-            }
-            if (type == 6) {
-                const results = await Promise.all(input.map(async(id) => {
-                    while (true) {
-                        const res = await fetch(`https://users.roblox.com/v1/users/${id}`, {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Cookie": `.ROBLOSECURITY=${security}`
-                            }
-                        })
-                        const data = await res.json()
-                        if (data.errors) {
-                            maxCount = maxCount - 1
-                            await new Promise(r => setTimeout(r, 10000))
-                            if(maxCount <= 0) {
-                                return {success: false, data: "Max Count Achieved"}
-                            }
-                        } else {
-                            return data
+                        catch(err) {
+                            console.log("에러 발생, 재시도")
+                            await new Promise(resolve => setTimeout(resolve, 1000))
                         }
                     }
+                    return []
                 }))
-                return results
+                res = res.flat()
             }
-            if(type == 7) {
-                while(true) {
-                    const res = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`,
-                        {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                                'Cookie': `.ROBLOSECURITY=${security}`
-                            }
-                        }
-                    )
-                    const data = await res.json()
-                    if(data.errors) {
-                        maxCount = maxCount - 1
-                        console.log(data.errors)
-                        if(maxCount <= 0) {
-                            return {success: false, data: "Max Count Achieved"}
-                        }
-                    }
-                    else {
-                        return data.data
-                    }
+            else if(type == "presence") {
+                if(!Array.isArray(input)) {
+                    throw new Error("배열이 아님")
                 }
+                const slice = package.sliceArray(input, 50)
+                res = await Promise.all(slice.map(async(i) => {
+                    for(let j = 5;j>0;j=j-1) {
+                        try {
+                            fet = await fetch(`https://presence.roblox.com/v1/presence/users`, {
+                                method: "POST",
+                                headers: headers,
+                                body: JSON.stringify({
+                                    userIds: i
+                                })
+                            })
+                            const result = await fet.json()
+                            if(result.errors) {
+                                throw new Error(result.errors[0]);
+                            }
+                            return result.data
+                        }
+                        catch(err) {
+                            console.log("에러 발생, 재시도")
+                            await new Promise(resolve => setTimeout(resolve, 1000))
+                        }
+                    }
+                    return []
+                }))
+                res = res.flat()
             }
-
-            if(type == 8) {
-                let full = []
-                const startRes = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${security}`
+            else if(type == "thumbnails") {
+                if(!Array.isArray(input)) {
+                    throw new Error("배열이 아님")
+                }
+                const slice = package.sliceArray(input, 50)
+                res = await Promise.all(slice.map(async(i) => {
+                    for(let j = 5;j>0;j=j-1) {
+                        try {
+                            fet = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${i.join(",")}&size=150x150&format=Png`, {
+                                method: "GET",
+                                headers: headers
+                            })
+                            const result = await fet.json()
+                            if(result.errors) {
+                                throw new Error(result.errors[0]);
+                            }
+                            return result.data
+                        }
+                        catch(err) {
+                            console.log("에러 발생, 재시도")
+                            await new Promise(resolve => setTimeout(resolve, 1000))
                         }
                     }
-                )
-                const startData = await startRes.json()
-                full.push(...startData.data)
-                let nextPageCursor = startData.nextPageCursor
-                while(nextPageCursor) {
-                    const res = await fetch(`https://games.roblox.com/v1/games/${input}/servers/public?limit=100&cursor=${nextPageCursor}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${security}`
+                    return []
+                }))
+                res = res.flat()
+            }
+            else if(type == "users") {
+                if(!Array.isArray(input)) {
+                    throw new Error("배열이 아님")
+                }
+                res = await Promise.all(input.map(async(i) => {
+                    for(let j = 5;j>0;j=j-1) {
+                        try {
+                            fet = await fetch(`https://users.roblox.com/v1/users/${i}`, {
+                                method: "GET",
+                                headers: headers
+                            })
+                            const result = await fet.json()
+                            if(result.errors) {
+                                throw new Error(result.errors[0]);
+                            }
+                            return result
+                        }
+                        catch(err) {
+                            console.log("에러 발생, 재시도")
+                            await new Promise(resolve => setTimeout(resolve, 1000))
                         }
                     }
-                )
-                    const data = await res.json()
-                    if(data.errors) {
-                        await new Promise(resolve => setTimeout(resolve, 3000))
+                    return []
+                }))
+                res = res.flat()
+            }
+            else if(type == "friends") {
+                if(typeof input !== "string") {
+                    throw new Error("텍스트가 아님")
+                }
+                for(let i = 5;i>0;i=i-1) {
+                    try {
+                        fet = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`, {
+                            method: "GET",
+                            headers: headers
+                        })
+                        res = await fet.json()
+                        if(res.errors) {
+                            throw new Error(res.errors[0]);
+                        }
+                        else {
+                            res.data
+                            break
+                        }
                     }
-                    else {
-                        nextPageCursor = data.nextPageCursor
-                        full.push(...data.data)
+                    catch(err) {
+                        console.log("에러 발생, 재시도")
                         await new Promise(resolve => setTimeout(resolve, 1000))
                     }
                 }
-                return full
             }
-            if(type == 9) {
-                const res = await fetch('https://thumbnails.roblox.com/v1/batch', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cookie': `.ROBLOSECURITY=${security}`
-                    },
-                    body: JSON.stringify(input),
-                })
-                const data = await res.json()
-                if(data.errors) {
-                    console.log(data.errors)
-                    return {success: false, error: data.errors[0].message}
+            else if(type == "servers") {
+                if(typeof input !== "object") {
+                    throw new Error("객체가 아님")
                 }
-                else {
-                    return data.data
+                if(!input.placeId) {
+                    throw new Error("placeId 없음")
                 }
-            }
-            if(type == 10) {
-                const da = input.gameIds.map(i =>
-                    fetch('https://gamejoin.roblox.com/v1/join-game-instance', {
-                        method: 'POST',
-                        headers: {
-                            'User-Agent': 'Roblox/WinInet',
-                            'Cookie': `.ROBLOSECURITY=${security}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({placeId: input.placeId,gameId: i}),
-                    }).then(res => res.json())
-                )
+                if(!input.count) {
+                    throw new Error("count 없음")
+                }
+                res = [];
+                let cursor = null;
 
-                const data = await Promise.all(da)
-                return data
-            }
-        },
-        searchObject: async function(placeId, requestList, security) {
-            const userDescriptionList = await funcs.robloxAPI(5, requestList, security)
-            const userPresenceList = await funcs.robloxAPI(3, requestList, security)
-            const userImgList = await funcs.robloxAPI(4, requestList, security)
-            const userDataList = requestList.map((i) => {
-                const userDescription = userDescriptionList.find(j => j.id == i)
-                const img = (userImgList.find(j => j.targetId == i)).imageUrl
-                const presence = (userPresenceList.find(j => j.userId == i)).userPresenceType
-                return {...userDescription,img: img, presence: presence}
-            })
+                while(true) {
+                    try {
+                        const link = cursor
+                            ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${cursor}`
+                            : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100`;
 
-            const serverListFetch = await funcs.robloxAPI(8, placeId, security)
-            const serverTokens = (serverListFetch).map((i) => {return i.playerTokens.map((j) => {return {requestId: i.id,token: j,type: 'AvatarHeadshot',size: '150x150'}})}).flat()
-            const tokenSlice = []
-            for (let i = 0; i < serverTokens.length; i += 100) {
-                tokenSlice.push(serverTokens.slice(i, i + 100))
-            }
-            const serverDataListFetch = await Promise.all(tokenSlice.map((i) => {return funcs.robloxAPI(9, i, security)}))
-            const serverDataList = (serverDataListFetch.flat()).map((i) => {return {img: i.imageUrl, jobId: i.requestId}})
-            const resultList = []
-            for(const i of userDataList) {
-                const found = serverDataList.find(j => j.img == i.img)
-                let imgs
-                let server = null
-                if(found && i.presence == 2) {
-                    imgs =  (serverDataList.filter(j => j.jobId == found.jobId)).map(p => p.img)
-                    const serverPlayer = serverListFetch.find(j => j.id == found.jobId)
-                    server = {
-                        jobId: found.jobId,
-                        img: imgs,
-                        maxPlayers: serverPlayer.maxPlayers,
-                        playing: serverPlayer.playing,
+                        const fet = await fetch(link);
+                        const t = await fet.json();
+                        if(t.errors) throw new Error(t.errors[0]);
+
+                        res.push(...t.data);
+
+                        if(!t.nextPageCursor) break;
+                        cursor = t.nextPageCursor;
+                    } catch(err) {
+                        console.log("서버 요청 실패, 재시도:", err);
+                        await new Promise(r => setTimeout(r, 3000));
                     }
                 }
-                resultList.push({
-                    user: i,
-                    server: server
-                })
             }
-            return {placeId: placeId, data: resultList}
+            else if(type == "thumbnailsBatch") {
+                if(!Array.isArray(input)) {
+                    throw new Error("배열이 아님")
+                }
+                const slice = package.sliceArray(input, 100)
+                res = await Promise.all(slice.map(async(i) => {
+                    for(let j = 5;j>0;j=j-1) {
+                        try {
+                            fet = await fetch(`https://thumbnails.roblox.com/v1/batch`, {
+                                method: "POST",
+                                headers: headers,
+                                body: JSON.stringify(i)
+                            })
+                            const result = await fet.json()
+                            if(result.errors) {
+                                throw new Error(result.errors[0]);
+                            }
+                            return result.data
+                        }
+                        catch(err) {
+                            console.log("에러 발생, 재시도")
+                            await new Promise(resolve => setTimeout(resolve, 1000))
+                        }
+                    }
+                    return []
+                }))
+                res = res.flat()
+            }
+            else if(type == "serverDetail") {
+                if(!Array.isArray(input)) {
+                    throw new Error("배열이 아님")
+                }
+                res = await Promise.all(input.map(async(i) => {
+                    for(let j = 5;j>0;j=j-1) {
+                        try {
+                            if(!i.placeId) {
+                                throw new Error("placeId 없음")
+                            }
+                            if(!i.jobId) {
+                                throw new Error("jobId 없음")
+                            }
+                            fet = await fetch(`https://gamejoin.roblox.com/v1/join-game-instance`, {
+                                method: "POST",
+                                headers: {
+                                    'User-Agent': 'Roblox/WinInet',
+                                    ...headers
+                                },
+                                body: JSON.stringify({
+                                    placeId: i.placeId,
+                                    gameId: i.jobId
+                                })
+                            })
+                            const result = await fet.json()
+                            if(result.errors) {
+                                throw new Error(result.errors[0]);
+                            }
+                            return result
+                        }
+                        catch(err) {
+                            console.log("에러 발생, 재시도")
+                            await new Promise(resolve => setTimeout(resolve, 1000))
+                        }
+                    }
+                    return []
+                }))
+                res = res.flat()
+            }
+            else {
+                res = null
+            }
+            return res
+        },
+        searchObject: async function(placeId, idList) {
+            const playerFetchList = await package.robloxAPI("users", idList)
+            const playerImgList = await package.robloxAPI("thumbnails", idList)
+            const playerFullList = playerFetchList.map(i => {
+                const img = playerImgList.find(j => j.targetId == i.id)
+                return {...i,
+                    img: img.imageUrl
+                }
+            })
+
+            const serverFetchList = await package.robloxAPI("servers", {placeId: placeId, count: 200})
+            const serverBatchList = await package.robloxAPI("thumbnailsBatch", serverFetchList.map(i => ({jobId: i.id, token: i.playerTokens})).flat().flatMap(i => i.token.map(j => ({requestId: i.jobId, token: j, type: 'AvatarHeadshot', size: '150x150'}))))
+            const serverFullList = serverFetchList.map(i => {
+                const img = serverBatchList.filter(j => j.requestId == i.id).map(j => j.imageUrl)
+                return {
+                    jobId: i.id,
+                    maxPlayers: i.maxPlayers,
+                    playing: i.playing,
+                    img: img
+                }
+            })
+
+            const result = playerFullList.map(i => {
+                let server = null
+                for(const j of serverFullList) {
+                    for(const t of j.img) {
+                        if(t == i.img) {
+                            server = {
+                                jobId: j.jobId,
+                                img: j.img,
+                                maxPlayers: j.maxPlayers,
+                                playing: j.playing,
+                            }
+                        }
+                    }
+                }
+                return {user: {...i}, server: server}
+            })
+            return result
         }
     }
-    return funcs
+    return package
 }
