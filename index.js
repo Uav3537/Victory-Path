@@ -178,7 +178,7 @@ async function loadPackage(req, res) {
 
             const created = new Date();
             const expire = new Date(created.getTime() + package.parseTimeout(timeout))
-            if(req.grade >= 3) {
+            if(req.grade >= 4) {
                 await package.supabaseAPI("insert", "tokens", {
                     created: created,
                     token: token,
