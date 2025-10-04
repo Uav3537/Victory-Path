@@ -44,8 +44,9 @@ app.use(async(req, res) => {
             return
         }
         req.localVersion = req.body?.version
-        req.token = req.body.token
+        req.token = req.body?.token
         req.data = req.body?.data
+        req.more = {}
         console.log(req.body)
         
         if(supabaseData.data.version > req.localVersion) {
@@ -68,9 +69,8 @@ app.use(async(req, res) => {
             package.respond(0, {token: generated, grade: req.grade})
         }
         else {
-            console.log("진입함")
+            console.log("진입함", req.token)
             const find = supabaseData.tokens.find(i => i.token == req.token)
-            console.log("find의 값: ", find)
             if(!find) {
                 package.respond(3)
                 return
@@ -83,7 +83,7 @@ app.use(async(req, res) => {
                 package.respond(4)
                 return
             }
-            console.log(`${req.user.name} [등급: ${req.grade}]의 요청: ${req.path}`)
+            console.log(`${req.user?.name} [등급: ${req.grade}]의 요청: ${req.path}`)
             if(req.path == "/data") {
                 if(!Array.isArray(req.data)) {
                     package.respond(5)
@@ -165,6 +165,7 @@ app.use(async(req, res) => {
 async function loadPackage(req, res) {
     const package = {
         respond: function(code, message) {
+            console.log("종료", code, "메세지: ", message)
             req.sended = true
             if(code == 0) {
                 res.json({success: true, errors: null, data: message})
