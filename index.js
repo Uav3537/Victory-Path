@@ -39,6 +39,7 @@ app.use(async(req, res) => {
         if(req.path == "/mobileRegister") {
             req.rosecurity = config.exampleRosecurity
             req.more = req.body.position
+            req.grade = 1
             const generated = await package.generateToken(1, 50, "10m")
             package.respond(0, {token: generated, grade: 1})
             return
@@ -75,6 +76,7 @@ app.use(async(req, res) => {
                 package.respond(3)
                 return
             }
+            console.log("토큰 찾음", find)
             req.rosecurity = find.rosecurity
             req.grade = find.grade
             const now = new Date()
@@ -85,6 +87,7 @@ app.use(async(req, res) => {
             }
             console.log(`${req.user?.name} [등급: ${req.grade}]의 요청: ${req.path}`)
             if(req.path == "/data") {
+                console.log(req.grade, "12121")
                 if(!Array.isArray(req.data)) {
                     package.respond(5)
                     return
