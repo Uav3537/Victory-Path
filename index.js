@@ -151,7 +151,7 @@ app.use(async(req, res) => {
                 }
                 package.supabaseAPI("insert", "teamerList", {
                     id: req.data.id,
-                    reason: req.data.reason
+                    reason: req.data.reason.map(i => i.name)
                 })
                 package.respond(0)
             }
