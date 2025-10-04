@@ -149,12 +149,18 @@ const version = 20;
         buttonWrapper.style.display = "flex"
         buttonWrapper.style.gap = "5px"
 
+        const buttonWrapperFirst = document.createElement("div")
+        buttonWrapperFirst.style.position = "relative"
+        buttonWrapperFirst.style.display = "flex"
+        buttonWrapperFirst.style.gap = "5px"
+
         instances.appendChild(panelContainer)
         panelContainer.appendChild(panelMain)
         panelMain.appendChild(panelUser)
         panelMain.appendChild(panelInput)
         panelMain.appendChild(panelSearchBase)
         panelSearchBase.appendChild(panelSearch)
+        panelContainer.appendChild(buttonWrapperFirst)
         panelContainer.appendChild(buttonWrapper)
 
         let searching = false
@@ -752,6 +758,48 @@ const version = 20;
                 containerUp.appendChild(label)
             }
         })
+        const teamerButton = document.createElement("button")
+        teamerButton.className = "vp-teamerButton"
+        teamerButton.style.position = "relative"
+        teamerButton.style.display = "flex"
+        teamerButton.style.justifyContent = "center"
+        teamerButton.style.alignItems = "center"
+        teamerButton.style.backgroundColor = "rgba(227, 227, 227, 1)"
+        teamerButton.style.color = "black"
+        teamerButton.style.width = "200px"
+        teamerButton.style.height = "70px"
+        teamerButton.style.border = "5px solid"
+        teamerButton.style.borderColor = "rgba(197, 197, 197, 1)"
+        teamerButton.style.borderRadius = "5px"
+        teamerButton.innerText = "리스트 추적"
+
+        teamerButton.addEventListener("click", async() => {
+            if(searching) return
+            searching = true
+            panelInput.value = "TeamerList"
+            panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
+            panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
+            const data = package.teamerList.map(i => i.id)
+            const search = await doSearch(data)
+            const hasResult = search.find(i => i.server)
+            if(hasResult) {
+                const audio = new Audio('./success.mp3')
+                audio.play()
+                panelUser.src = "./user-success.png"
+            }
+            else {
+                const audio = new Audio('./error.mp3')
+                audio.play()
+                panelUser.src = "./user-error.png"
+            }
+            panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
+            searching = false
+            for(const i of search) {
+                if(i.server) addOb(i)
+            }
+        })
+
+        buttonWrapperFirst.appendChild(teamerButton)
         buttonWrapper.appendChild(li3)
         buttonWrapper.appendChild(li4)
     })
