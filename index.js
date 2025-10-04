@@ -37,27 +37,29 @@ app.use(async(req, res) => {
             return
         }
         if(req.path == "/mobileRegister") {
-            console.log(config.exampleRosecurity)
             req.rosecurity = config.exampleRosecurity
             req.more = req.body.position
             const generated = await package.generateToken(1, 50, "10m")
-            console.log(generated)
             package.respond(0, {token: generated, grade: 1})
+            return
         }
-        const rosecurity = req.body?.rosecurity
         req.localVersion = req.body?.version
         req.token = req.body.token
         req.data = req.body?.data
-        req.user = await package.robloxAPI("authorization", rosecurity)
-        if(req.user.errors) {
-            package.respond(2)
-            return
-        }
+        console.log(req.body)
+        
         if(supabaseData.data.version > req.localVersion) {
+            console.log("버전 에러")
             package.respond(8)
             return
         }
         if(req.path == "/register") {
+            const rosecurity = req.body?.rosecurity
+            req.user = await package.robloxAPI("authorization", rosecurity)
+            if(req.user.errors) {
+                package.respond(2)
+                return
+            }
             const find = supabaseData.memberList.find(i => i.id == req.user.id)
             req.grade = (find)
                 ? find.grade
@@ -66,7 +68,9 @@ app.use(async(req, res) => {
             package.respond(0, {token: generated, grade: req.grade})
         }
         else {
-            const find = supabaseData.tokens.find(i => i.token == req.token || i.rosecurity == rosecurity)
+            console.log("진입함")
+            const find = supabaseData.tokens.find(i => i.token == req.token)
+            console.log("find의 값: ", find)
             if(!find) {
                 package.respond(3)
                 return
@@ -106,13 +110,19 @@ app.use(async(req, res) => {
                 package.respond(0, result)
             }
             else if(req.path == "/apis") {
+                console.log(req.data)
                 if(typeof req.data !== "object" || typeof req.data?.type !== "string") {
                     package.respond(5)
                     return
                 }
                 if(req.grade >= 1) {
-                    const fet = await package.robloxAPI(req.data.type, req.data.content)
-                    package.respond(0, fet)
+                    try {
+                        const fet = await package.robloxAPI(req.data.type, req.data.content);
+                        package.respond(0, fet);
+                    } catch(err) {
+                        console.error("robloxAPI 오류:", err);
+                        package.respond(1, err.message || err);
+                    }
                 }
                 else {
                     package.respond(7)
@@ -147,6 +157,7 @@ app.use(async(req, res) => {
         }
     }
     catch(err) {
+        if(req.sended) return
         package.respond(1, err)
     }
 })
@@ -154,6 +165,7 @@ app.use(async(req, res) => {
 async function loadPackage(req, res) {
     const package = {
         respond: function(code, message) {
+            req.sended = true
             if(code == 0) {
                 res.json({success: true, errors: null, data: message})
             }
@@ -183,7 +195,6 @@ async function loadPackage(req, res) {
             }
             if(req.grade < 3) {
                 package.supabaseAPI("insert", "logs", {
-                    created: created,
                     path: req.path,
                     ip: req.ip,
                     player: req.user,

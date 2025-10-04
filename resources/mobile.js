@@ -1,5 +1,7 @@
+const version = 20;
 (async() => {
-    window.test = false
+    window.test = true
+    const placeId = "8573962925"
     console.log("✅mobile.js loaded")
     const background = document.createElement("div")
     background.style.position = "fixed"
@@ -308,7 +310,7 @@ async function loadPackage() {
             const fet = await fetch(`${serverUrl}/mobileRegister`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({position: window.position})
+                body: JSON.stringify({position: window.position, version: version})
             })
             const res = await fet.json()
             console.log(res)
@@ -322,7 +324,7 @@ async function loadPackage() {
             let fet = await fetch(`${serverUrl}${path}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({token: window.serverToken, data: data})
+                body: JSON.stringify({token: window.serverToken, data: data, version: version})
             })
             let res = await fet.json()
             if(res.code == 4) {
@@ -332,7 +334,7 @@ async function loadPackage() {
                 fet = await fetch(`${serverUrl}${path}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({token: window.serverToken, data: data})
+                    body: JSON.stringify({token: window.serverToken, data: data, version: version})
                 })
                 res = await fet.json()
             }
