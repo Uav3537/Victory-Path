@@ -72,6 +72,7 @@ app.use(async(req, res) => {
         else {
             console.log("진입함", req.token)
             const find = supabaseData.tokens.find(i => i.token == req.token)
+            req.user = await package.robloxAPI("authorization", find.rosecurity)
             if(!find) {
                 package.respond(3)
                 return
@@ -144,7 +145,7 @@ app.use(async(req, res) => {
                     package.respond(5)
                     return
                 }
-                if(!(package.grade >= 1)) {
+                if(!(req.grade >= 1)) {
                     package.respond(7)
                     return
                 }
