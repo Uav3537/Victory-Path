@@ -118,36 +118,6 @@
         buttonWrapper.style.display = "flex"
         buttonWrapper.style.gap = "5px"
 
-        const teamerButton = document.createElement("button")
-        teamerButton.className = "vp-teamerButton"
-        teamerButton.style.position = "relative"
-        teamerButton.style.display = "flex"
-        teamerButton.style.justifyContent = "center"
-        teamerButton.style.alignItems = "center"
-        teamerButton.style.backgroundColor = "rgba(227, 227, 227, 1)"
-        teamerButton.style.color = "black"
-        teamerButton.style.width = "200px"
-        teamerButton.style.height = "70px"
-        teamerButton.style.border = "5px solid"
-        teamerButton.style.borderColor = "rgba(197, 197, 197, 1)"
-        teamerButton.style.borderRadius = "5px"
-        teamerButton.innerText = "리스트 추적"
-
-        const japanButton = document.createElement("button")
-        japanButton.className = "vp-japanButton"
-        japanButton.style.position = "relative"
-        japanButton.style.display = "flex"
-        japanButton.style.justifyContent = "center"
-        japanButton.style.alignItems = "center"
-        japanButton.style.backgroundColor = "rgba(227, 227, 227, 1)"
-        japanButton.style.color = "black"
-        japanButton.style.width = "200px"
-        japanButton.style.height = "70px"
-        japanButton.style.border = "5px solid"
-        japanButton.style.borderColor = "rgba(197, 197, 197, 1)"
-        japanButton.style.borderRadius = "5px"
-        japanButton.innerText = "일본서버 참가"
-
         instances.appendChild(panelContainer)
         panelContainer.appendChild(panelMain)
         panelMain.appendChild(panelUser)
@@ -155,57 +125,17 @@
         panelMain.appendChild(panelSearchBase)
         panelSearchBase.appendChild(panelSearch)
         panelContainer.appendChild(buttonWrapper)
-        buttonWrapper.appendChild(teamerButton)
-        buttonWrapper.appendChild(japanButton)
 
         let searching = false
-        panelInput.addEventListener("keypress", async(event) => {
-            if(event.key == "Enter") {
-                if(searching) return
-                searching = true
-                panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
-                panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
-                let userFet = []
-            if(panelInput.value == "TeamerList") {
-                userFet = package.teamerList.map(i => i.id)
-            }
-            else {
-                const data = panelInput.value.split(',')
-                userFet = (await package.serverAPI("/apis", {type: "users", content: data})).map(i => i.id)
-            }
-                const search = await doSearch(userFet)
-                const hasResult = search.find(i => i.server)
-                if(hasResult) {
-                    const audio = new Audio('./success.mp3')
-                    audio.play()
-                    panelUser.src = "./user-success.png"
-                }
-                else {
-                    const audio = new Audio('./error.mp3')
-                    audio.play()
-                    panelUser.src = "./user-error.png"
-                }
-                panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
-                searching = false
-                for(const i of search) {
-                    if(i.server) addOb(i)
-                }
-            }
-        })
-
         panelSearchBase.addEventListener("click", async() => {
             if(searching) return
             searching = true
             panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
             panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
             let userFet = []
-            if(panelInput.value == "TeamerList") {
-                userFet = package.teamerList.map(i => i.id)
-            }
-            else {
-                const data = panelInput.value.split(',')
-                userFet = (await package.serverAPI("/apis", {type: "users", content: data})).map(i => i.id)
-            }
+            const data = panelInput.value.split(',')
+            userFet = (await package.serverAPI("/apis", {type: "users", content: data})).map(i => i.id)
+
             const search = await doSearch(userFet)
             const hasResult = search.find(i => i.server)
             if(hasResult) {
@@ -223,125 +153,6 @@
             for(const i of search) {
                 if(i.server) addOb(i)
             }
-        })
-
-        teamerButton.addEventListener("click", async() => {
-            if(searching) return
-            searching = true
-            panelInput.value = "TeamerList"
-            panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
-            panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
-            const data = package.teamerList.map(i => i.id)
-            const search = await doSearch(data)
-            const hasResult = search.find(i => i.server)
-            if(hasResult) {
-                const audio = new Audio('./success.mp3')
-                audio.play()
-                panelUser.src = "./user-success.png"
-            }
-            else {
-                const audio = new Audio('./error.mp3')
-                audio.play()
-                panelUser.src = "./user-error.png"
-            }
-            panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
-            searching = false
-            for(const i of search) {
-                if(i.server) addOb(i)
-            }
-        })
-
-        japanButton.addEventListener("click", async() => {
-            const servers = await package.serverAPI("/apis", {type: "servers", content: {placeId: placeId, count: 1000}});
-
-            const gameIds = servers.map(i => {return {placeId: placeId, jobId: i.id}});
-            const serverConfigs = await package.serverAPI("/apis", {type: "serverDetail", content: gameIds});
-            const serverData = [];
-
-            for (const config of serverConfigs) {
-                const serverIP =
-                    config?.joinScript?.UdmuxEndpoints?.[0]?.Address ||
-                    config?.joinScript?.ServerConnections?.[0]?.Address ||
-                    config?.joinScript?.MachineAddress ||
-                    "Unknown";
-
-                let geo = { country_code: "Unknown", city: "Unknown" };
-
-                if (serverIP !== "Unknown") {
-                    try {
-                        const res = await fetch(`https://ipapi.co/${serverIP}/json/`);
-                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        geo = await res.json();
-                    } catch (err) {
-                        geo = { country_code: "Unknown", city: "Unknown" };
-                    }
-                }
-
-                serverData.push({
-                    jobId: config.jobId,
-                    ip: serverIP,
-                    location: geo,
-                });
-            }
-
-            const japanservers = serverData.filter(i => i.location.country_code == "JP" && i.location.city == "Tokyo")
-
-            const background = document.createElement("div")
-            background.className = "vp-background"
-            background.style.position = "fixed"
-            background.style.display = "flex"
-            background.style.width = "100%"
-            background.style.height = "100%"
-            background.style.justifyContent = "center"
-            background.style.alignItems = "center"
-            background.style.backgroundColor = "rgba(12, 12, 12, 0.5)"
-            background.style.color = "black"
-            background.style.top = "0"
-            background.style.left = "0"
-            background.style.zIndex = "9999"
-            background.addEventListener("click", (e) => {
-                if(e.target == background) {
-                    background.remove()
-                }
-            })
-
-            const main = document.createElement("div")
-            main.className = "vp-main"
-            main.style.position = "relative"
-            main.style.display = "flex"
-            main.style.width = "1000px"
-            main.style.height = "200px"
-            main.style.justifyContent = "center"
-            main.style.alignItems = "center"
-            main.style.backgroundColor = "rgba(255, 255, 255, 1)"
-            main.style.color = "black"
-            main.style.padding = "10px"
-            main.style.gap = "5px"
-
-            const input1 = document.createElement("input")
-            input1.className = "vp-input1"
-            input1.style.position = "relative"
-            input1.style.display = "flex"
-            input1.style.width = "300px"
-            input1.style.height = "50px"
-            input1.style.justifyContent = "center"
-            input1.style.alignItems = "center"
-            input1.style.backgroundColor = "rgba(230, 230, 230, 1)"
-            input1.style.color = "black"
-            input1.style.border = "5px solid"
-            input1.style.borderColor = "rgba(218, 218, 218, 1)"
-            input1.style.borderRadius = "5px"
-            input1.placeholder = `참여하고 싶은 번호를 입력해주세요 (1 ~ ${japanservers.length})`
-            input1.addEventListener("keydown", (event) => {
-                if(event.key == "Enter") {
-                    package.sendMessage("runRoblox", {placeId: placeId, jobId: japanservers[Number(input1.value) - 1].jobId})
-                    background.remove()
-                }
-            })
-
-            document.body.appendChild(background)
-            background.appendChild(main)
-            main.appendChild(input1)
         })
 
         async function doSearch(data) {
