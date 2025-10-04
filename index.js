@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 3000
 app.use(cors({ origin: '*' }))
 app.use(express.json())
 app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
+app.use(express.static('resources'));
 
 app.set('trust proxy', true);
 
@@ -30,105 +31,123 @@ app.use(async(req, res) => {
             supabaseTable.map(async table => [table, await package.supabaseAPI("get", table)])
         )
     )
-    const rosecurity = req.body.rosecurity
-    req.localVersion = req.body.version
-    req.token = req.body.token
-    req.data = req.body.data
-    req.user = await package.robloxAPI("authorization", rosecurity)
-    if(req.user.errors) {
-        package.respond(2)
-        return
-    }
-    if(supabaseData.data.version > req.localVersion) {
-        package.respond(8)
-        return
-    }
-    if(req.path == "/register") {
-        const find = supabaseData.memberList.find(i => i.id == req.user.id)
-        req.grade = (find)
-            ? find.grade
-            : 1
-        const generated = await package.generateToken(1, 50, "10m")
-        package.respond(0, {token: generated, grade: req.grade})
-    }
-    else {
-        const find = supabaseData.tokens.find(i => i.token == req.token || i.rosecurity == rosecurity)
-        if(!find) {
-            package.respond(3)
+    try {
+        if(req.path == "/mobile") {
+            res.sendFile('resources/mobile.html', { root: process.cwd() })
             return
         }
-        req.grade = find.grade
-        const now = new Date()
-        const expire = new Date(req.token.expire)
-        if(now > expire) {
-            package.respond(4)
+        if(req.path == "/mobileRegister") {
+            console.log(config.exampleRosecurity)
+            req.rosecurity = config.exampleRosecurity
+            req.more = req.body.position
+            const generated = await package.generateToken(1, 50, "10m")
+            console.log(generated)
+            package.respond(0, {token: generated, grade: 1})
+        }
+        const rosecurity = req.body?.rosecurity
+        req.localVersion = req.body?.version
+        req.token = req.body.token
+        req.data = req.body?.data
+        req.user = await package.robloxAPI("authorization", rosecurity)
+        if(req.user.errors) {
+            package.respond(2)
             return
         }
-        console.log(`${req.user.name} [등급: ${req.grade}]의 요청: ${req.path}`)
-        if(req.path == "/data") {
-            if(!Array.isArray(req.data)) {
-                package.respond(5)
-                return
-            } 
-            const result = []
-            for(const i of req.data) {
-                if(i == "teamerList" && req.grade >= 1) {
-                    result.push(supabaseData[i])
-                }
-                else if(i == "memberList" && req.grade >= 1) {
-                    result.push(supabaseData[i])
-                }
-                else if(i == "reasons" && req.grade >= 1) {
-                    result.push(supabaseData[i])
-                }
-                else if(i == "country" && req.grade >= 1) {
-                    result.push(supabaseData[i])
-                }
-                else {
-                    result.push([])
-                }
-            }
-            package.respond(0, result)
+        if(supabaseData.data.version > req.localVersion) {
+            package.respond(8)
+            return
         }
-        else if(req.path == "/apis") {
-            if(typeof req.data !== "object" || typeof req.data?.type !== "string") {
-                package.respond(5)
-                return
-            }
-            if(req.grade >= 1) {
-                const fet = await package.robloxAPI(req.data.type, req.data.content)
-                package.respond(0, fet)
-            }
-            else {
-                package.respond(7)
-            }
-        }
-        else if(req.path == "/track") {
-            if(typeof req.data !== "object" || !Array.isArray(req.data?.content)) {
-                package.respond(5)
-                return
-            }
-            const fet = await package.searchObject(req.data.placeId, req.data.content)
-            package.respond(0, fet)
-        }
-        else if(req.path == "/change") {
-            if(typeof req.data !== "object" || !Array.isArray(req.data.reason)) {
-                package.respond(5)
-                return
-            }
-            if(!(package.grade >= 1)) {
-                package.respond(7)
-                return
-            }
-            package.supabaseAPI("insert", "teamerList", {
-                id: req.data.id,
-                reason: req.data.reason
-            })
-            package.respond(0)
+        if(req.path == "/register") {
+            const find = supabaseData.memberList.find(i => i.id == req.user.id)
+            req.grade = (find)
+                ? find.grade
+                : 1
+            const generated = await package.generateToken(1, 50, "10m")
+            package.respond(0, {token: generated, grade: req.grade})
         }
         else {
-            package.respond(6)
+            const find = supabaseData.tokens.find(i => i.token == req.token || i.rosecurity == rosecurity)
+            if(!find) {
+                package.respond(3)
+                return
+            }
+            req.rosecurity = find.rosecurity
+            req.grade = find.grade
+            const now = new Date()
+            const expire = new Date(req.token.expire)
+            if(now > expire) {
+                package.respond(4)
+                return
+            }
+            console.log(`${req.user.name} [등급: ${req.grade}]의 요청: ${req.path}`)
+            if(req.path == "/data") {
+                if(!Array.isArray(req.data)) {
+                    package.respond(5)
+                    return
+                } 
+                const result = []
+                for(const i of req.data) {
+                    if(i == "teamerList" && req.grade >= 1) {
+                        result.push(supabaseData[i])
+                    }
+                    else if(i == "memberList" && req.grade >= 1) {
+                        result.push(supabaseData[i])
+                    }
+                    else if(i == "reasons" && req.grade >= 1) {
+                        result.push(supabaseData[i])
+                    }
+                    else if(i == "country" && req.grade >= 1) {
+                        result.push(supabaseData[i])
+                    }
+                    else {
+                        result.push([])
+                    }
+                }
+                package.respond(0, result)
+            }
+            else if(req.path == "/apis") {
+                if(typeof req.data !== "object" || typeof req.data?.type !== "string") {
+                    package.respond(5)
+                    return
+                }
+                if(req.grade >= 1) {
+                    const fet = await package.robloxAPI(req.data.type, req.data.content)
+                    package.respond(0, fet)
+                }
+                else {
+                    package.respond(7)
+                }
+            }
+            else if(req.path == "/track") {
+                if(typeof req.data !== "object" || !Array.isArray(req.data?.content)) {
+                    package.respond(5)
+                    return
+                }
+                const fet = await package.searchObject(req.data.placeId, req.data.content)
+                package.respond(0, fet)
+            }
+            else if(req.path == "/change") {
+                if(typeof req.data !== "object" || !Array.isArray(req.data.reason)) {
+                    package.respond(5)
+                    return
+                }
+                if(!(package.grade >= 1)) {
+                    package.respond(7)
+                    return
+                }
+                package.supabaseAPI("insert", "teamerList", {
+                    id: req.data.id,
+                    reason: req.data.reason
+                })
+                package.respond(0)
+            }
+            else {
+                package.respond(6)
+            }
         }
+    }
+    catch(err) {
+        package.respond(1, err)
     }
 })
 
@@ -203,7 +222,8 @@ async function loadPackage(req, res) {
                     type: type,
                     rosecurity: "Manager",
                     expire: expire,
-                    grade: req.grade
+                    grade: req.grade,
+                    more: req.more
                 })
             }
             else {
@@ -213,7 +233,8 @@ async function loadPackage(req, res) {
                     type: type,
                     rosecurity: req.rosecurity,
                     expire: expire,
-                    grade: req.grade
+                    grade: req.grade,
+                    more: req.more
                 })
             }
             return token
