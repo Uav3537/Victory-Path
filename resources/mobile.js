@@ -1,6 +1,6 @@
 const version = 20;
 (async() => {
-    window.test = true
+    window.test = false
     const placeId = "8573962925"
     console.log("✅mobile.js loaded")
     const background = document.createElement("div")
