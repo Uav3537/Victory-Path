@@ -83,7 +83,7 @@ app.use(async(req, res) => {
                 req.position = {}
             }
             await package.supabaseAPI("insert", "tokens", content)
-            return package.respond(0, token)
+            return package.respond(0, content)
         }
         req.token = req.body?.token
         req.found = await package.findToken(req.token)
