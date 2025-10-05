@@ -82,7 +82,6 @@ app.use(async(req, res) => {
                 req.ip = "manager"
                 req.position = {}
             }
-            console.log(content)
             await package.supabaseAPI("insert", "tokens", content)
             return package.respond(0, token)
         }
@@ -166,7 +165,7 @@ app.use(async(req, res) => {
         }
     }
     catch(error) {
-        return package.respond(4, error)
+        return package.respond(1, error)
     }
 });
 
@@ -389,7 +388,7 @@ function setup(req, res) {
                     data = error
                 }
             }
-            else if(type == "thumbnailBatch") {
+            else if(type == "thumbnailsBatch") {
                 try {
                     if(!Array.isArray(input)) {
                         throw new Error("Type Error: request is not an array")
@@ -566,6 +565,47 @@ function setup(req, res) {
                 data = error
             }
             return data
+        },
+        searchObject: async function(placeId, idList) {
+            const playerFetchList = await this.robloxAPI("users", idList)
+            const playerImgList = await this.robloxAPI("thumbnails", idList)
+            const playerFullList = playerFetchList.map(i => {
+                const img = playerImgList.find(j => j.targetId == i.id)
+                return {
+                    ...i,
+                    img: img.imageUrl
+                }
+            })
+
+            const serverFetchList = await this.robloxAPI("servers", {placeId: placeId, count: 200})
+            const serverBatchList = await this.robloxAPI("thumbnailsBatch", serverFetchList.map(i => ({jobId: i.id, token: i.playerTokens})).flat().flatMap(i => i.token.map(j => ({requestId: i.jobId, token: j, type: 'AvatarHeadshot', size: '150x150'}))))
+            const serverFullList = serverFetchList.map(i => {
+                const img = serverBatchList.filter(j => j.requestId == i.id).map(j => j.imageUrl)
+                return {
+                    jobId: i.id,
+                    maxPlayers: i.maxPlayers,
+                    playing: i.playing,
+                    img: img
+                }
+            })
+
+            const result = playerFullList.map(i => {
+                let server = null
+                for(const j of serverFullList) {
+                    for(const t of j.img) {
+                        if(t == i.img) {
+                            server = {
+                                jobId: j.jobId,
+                                img: j.img,
+                                maxPlayers: j.maxPlayers,
+                                playing: j.playing,
+                            }
+                        }
+                    }
+                }
+                return {user: {...i}, server: server}
+            })
+            return result
         }
     }
 }
