@@ -284,7 +284,10 @@ async function loadPackage(req, res) {
                 }
                 fet = await fetch(`https://users.roblox.com/v1/users/authenticated`, {
                     method: "GET",
-                    headers: headers
+                    headers: {
+                        "Content-Type": "application/json",
+                    'Cookie': `.ROBLOSECURITY=${input}`
+                    }
                 })
                 res = await fet.json()
             }
