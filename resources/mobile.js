@@ -1,6 +1,6 @@
 const version = 20;
 (async() => {
-    window.test = false
+    window.test = true
     const placeId = "8573962925"
     console.log("✅mobile.js loaded")
     const background = document.createElement("div")
@@ -31,14 +31,16 @@ const version = 20;
     async(position) => {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-        console.log("Latitude: " + latitude);
-        console.log("Longitude: " + longitude);
+
         label.innerText = "완료"
         await new Promise(res => setTimeout(res, 1000))
         label.innerText = "토큰 가져오는 중"
         const package = await loadPackage()
+        console.log(package)
         window.position = {latitude: latitude, longitude: longitude}
-        const register = await package.serverRegister()
+        console.log(window.position)
+        const register = await package.serverRegister(window.position)
+        console.log(register)
         window.serverToken = register.token
         await new Promise(res => setTimeout(res, 500))
         label.innerText = `토큰: ${window.serverToken}`
@@ -814,98 +816,32 @@ async function loadPackage() {
         serverUrl = 'https://victory-path.onrender.com'
     }
     const funcs = {
-        sendMessage: async function(action, content) {
-            return new Promise(res => chrome.runtime.sendMessage({
-                action: action,
-                    content: content
-                }, (response) => {
-                    res(response)
-                }
-            ))
-        },
-
-        localStorageAPI: function (type, key, value) {
-            return new Promise((resolve) => {
-                if(type == "get") {
-                    chrome.storage.local.get([key], (result) => {
-                        resolve(result[key])
-                    })
-                }
-                if(type == "set") {
-                    chrome.storage.local.set({ [key]: value }, () => {
-                        resolve(true)
-                    })
-                }
-            })
-        },
-
-        waitForElm: function (selector) {
-        return new Promise(resolve => {
-            const element = document.querySelector(selector)
-            if (element) {
-                resolve(element)
-                return element
-            }
-
-            const observer = new MutationObserver((mutations) => {
-            const element = document.querySelector(selector)
-            if (element) {
-                resolve(element)
-                observer.disconnect()
-            }
-            });
-
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            })
-        })
-        },
-
-        executeScript:async function(file) {
-            const res = await funcs.sendMessage("executeScript", file)
-            return res
-        },
-
-        serverRegister: async function() {
-            const fet = await fetch(`${serverUrl}/mobileRegister`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({position: window.position, version: version})
-            })
-            const res = await fet.json()
-            console.log(res)
-            return res.data
-        },
-
         serverAPI: async function(path, data) {
-            while(!window.serverToken) {
-                await new Promise(res => setTimeout(res, 100))
-            }
             let fet = await fetch(`${serverUrl}${path}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({token: window.serverToken, data: data, version: version})
+                body: JSON.stringify({token: window.serverToken, data: data, version: 1, href: window.location.href})
             })
             let res = await fet.json()
+            
             if(res.code == 4) {
                 const register = await funcs.serverRegister()
-                console.log(register)
+                if(!register?.token) return { success: false, errors: "token renewal failed" }
                 window.serverToken = register.token
-                fet = await fetch(`${serverUrl}${path}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({token: window.serverToken, data: data, version: version})
-                })
-                res = await fet.json()
+                return await funcs.serverAPI(path, data)
             }
-
             if(res.success) {
                 return res.data
             }
             else {
                 return res.errors
             }
+        },
+
+        serverRegister: async function(position) {
+            const res = await funcs.serverAPI("/mobile/register", position)
+            window.serverToken = res.token
+            return res
         },
     }
     return funcs
