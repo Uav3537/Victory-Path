@@ -274,7 +274,7 @@ async function loadPackage(req, res) {
         robloxAPI: async function(type, input) {
             const headers = {
                 "Content-Type": "application/json",
-                'Cookie': `.ROBLOSECURITY=${input}`
+                'Cookie': `.ROBLOSECURITY=${req.rosecurity}`
             }
             let fet = null
             let res = null
