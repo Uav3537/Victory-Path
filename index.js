@@ -46,6 +46,8 @@ app.all(/^\/mobile\/(.*)/, async(req, res, next) => {
     }
     else {
         req.grade = 1
+        const table = await package.supabaseAPI("get", "/memberList")
+        req.rosecurity = table.find(i => i.id == req.user.id)?.rosecurity
         next()
     }
 })
@@ -53,7 +55,9 @@ app.all(/^\/mobile\/(.*)/, async(req, res, next) => {
 app.use(async(req, res) => {
     const package = setup(req, res)
     req.localVersion = req.body?.version
-    req.rosecurity = req.body?.rosecurity
+    if(!req.rosecurity) {
+        req.rosecurity = req.body?.rosecurity
+    }
     req.data = req.body?.data
     try {
         if(req.path == "/register") {
