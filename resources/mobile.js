@@ -118,7 +118,7 @@ const version = 20;
             japanButton.innerText = "일본서버 참가"
             japanButton.style.backgroundImage = `url(${"./Frame 4.png"})`
 
-            instances.prepend(panelContainer)
+            instances.appendChild(panelContainer)
             panelContainer.appendChild(panelMain)
             panelMain.appendChild(panelUser)
             panelMain.appendChild(panelInput)
