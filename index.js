@@ -46,7 +46,7 @@ app.all(/^\/mobile\/(.*)/, async(req, res, next) => {
     }
     else {
         req.grade = 1
-        const table = await package.supabaseAPI("get", "/memberList")
+        const table = await package.supabaseAPI("get", "memberList")
         req.rosecurity = table.find(i => i.id == req.user.id)?.rosecurity
         next()
     }
