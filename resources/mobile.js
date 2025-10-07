@@ -62,7 +62,7 @@ const version = 20;
 
         const teamerIdList = respond[0].map(i => i.id)
         const teamerImgList = await package.serverAPI("/apis", {type: "thumbnails", content: teamerIdList})
-        const teamerDataList = await package.serverAPI("/apis", {type: "users", content: teamerIdList})
+        const teamerDataList = await package.serverAPI("/apis", {type: "usernames", content: teamerIdList})
         const teamerFullList = respond[0].map(i => {
             const data = teamerDataList.find(j => j.id == i.id)
             const img = teamerImgList.find(j => j.targetId == i.id)?.imageUrl
@@ -71,7 +71,7 @@ const version = 20;
 
         const memberIdList = respond[1].map(i => i.id)
         const memberImgList = await package.serverAPI("/apis", {type: "thumbnails", content: memberIdList})
-        const memberDataList = await package.serverAPI("/apis", {type: "users", content: memberIdList})
+        const memberDataList = await package.serverAPI("/apis", {type: "usernames", content: memberIdList})
         const memberFullList = respond[1].map(i => {
             const data = memberDataList.find(j => j.id == i.id)
             const img = memberImgList.find(j => j.targetId == i.id)?.imageUrl
@@ -173,7 +173,7 @@ const version = 20;
             panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
             let userFet = []
             const data = panelInput.value.split(',')
-            userFet = (await package.serverAPI("/apis", {type: "users", content: data})).map(i => i.id)
+            userFet = (await package.serverAPI("/apis", {type: "usernames", content: data})).map(i => i.id)
 
             const search = await doSearch(userFet)
             const hasResult = search.find(i => i.server)
