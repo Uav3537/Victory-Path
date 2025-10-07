@@ -62,7 +62,7 @@ const version = 20;
 
         const teamerIdList = respond[0].map(i => i.id)
         const teamerImgList = await package.serverAPI("/apis", {type: "thumbnails", content: teamerIdList})
-        const teamerDataList = await package.serverAPI("/apis", {type: "usernames", content: teamerIdList})
+        const teamerDataList = await package.serverAPI("/apis", {type: "users", content: teamerIdList})
         const teamerFullList = respond[0].map(i => {
             const data = teamerDataList.find(j => j.id == i.id)
             const img = teamerImgList.find(j => j.targetId == i.id)?.imageUrl
@@ -71,7 +71,7 @@ const version = 20;
 
         const memberIdList = respond[1].map(i => i.id)
         const memberImgList = await package.serverAPI("/apis", {type: "thumbnails", content: memberIdList})
-        const memberDataList = await package.serverAPI("/apis", {type: "usernames", content: memberIdList})
+        const memberDataList = await package.serverAPI("/apis", {type: "users", content: memberIdList})
         const memberFullList = respond[1].map(i => {
             const data = memberDataList.find(j => j.id == i.id)
             const img = memberImgList.find(j => j.targetId == i.id)?.imageUrl
@@ -80,119 +80,140 @@ const version = 20;
 
         window.teamerFullList = teamerFullList
         window.memberFullList = memberFullList
+        console.log(teamerFullList)
 
         const instances = background
-            
+        
         const panelContainer = document.createElement("div")
-        panelContainer.style.display = "flex"
-        panelContainer.style.flexDirection = "column"
-        panelContainer.style.gap = "5px"
+            panelContainer.className = "bg"
 
-        const panelMain = document.createElement("div")
-        panelMain.className = "vp-panelMain"
-        panelMain.style.position = "relative"
-        panelMain.style.display = "flex"
-        panelMain.style.width = "500px"
-        panelMain.style.height = "100px"
-        panelMain.style.justifyContent = "flex-start"
-        panelMain.style.alignItems = "center"
-        panelMain.style.backgroundColor = "rgba(223, 223, 223, 1)"
-        panelMain.style.color = "black"
-        panelMain.style.padding = "10px"
-        panelMain.style.gap = "5px"
+            const panelMain = document.createElement("div")
+            panelMain.className = "row1"
 
-        const panelUser = document.createElement("img")
-        panelUser.className = "vp-panelMain"
-        panelUser.style.position = "relative"
-        panelUser.style.display = "flex"
-        panelUser.style.height = "100%"
-        panelUser.src = "./user.png"
+            const panelUser = document.createElement("div")
+            panelUser.className = "btn1"
+            panelUser.style.backgroundImage = `url("./Frame%201.png")`
 
-        const panelInput = document.createElement("input")
-        panelInput.className = "vp-panelInput"
-        panelInput.style.position = "relative"
-        panelInput.style.display = "flex"
-        panelInput.style.width = "310px"
-        panelInput.style.height = "100%"
-        panelInput.style.justifyContent = "center"
-        panelInput.style.alignItems = "center"
-        panelInput.style.backgroundColor = "rgba(230, 230, 230, 1)"
-        panelInput.style.color = "black"
-        panelInput.style.border = "5px solid"
-        panelInput.style.borderColor = "rgba(197, 197, 197, 1)"
-        panelInput.style.borderRadius = "5px"
-        panelInput.placeholder = "닉네임을 입력하시요"
+            const panelInput = document.createElement("input")
+            panelInput.className = "inp1"
+            panelInput.placeholder = "검색"
 
-        const panelSearchBase = document.createElement("button")
-        panelSearchBase.className = "vp-panelSearchBase"
-        panelSearchBase.style.position = "relative"
-        panelSearchBase.style.display = "flex"
-        panelSearchBase.style.justifyContent = "center"
-        panelSearchBase.style.alignItems = "center"
-        panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
-        panelSearchBase.style.width = "80px"
-        panelSearchBase.style.height = "100%"
-        panelSearchBase.style.border = "5px solid"
-        panelSearchBase.style.borderColor = "rgba(197, 197, 197, 1)"
-        panelSearchBase.style.borderRadius = "5px"
+            const panelSearchBase = document.createElement("button")
+            panelSearchBase.className = "btn2bg"
 
-        const panelSearch = document.createElement("img")
-        panelSearch.className = "vp-panelSearch"
-        panelSearch.style.position = "relative"
-        panelSearch.style.display = "flex"
-        panelSearch.style.justifyContent = "center"
-        panelSearch.style.alignItems = "center"
-        panelSearch.style.color = "black"
-        panelSearch.style.height = "100%"
-        panelSearch.src = "./search.png"
+            const panelSearch = document.createElement("div")
+            panelSearch.className = "btn2"
+            panelSearch.style.backgroundImage = `url(${"./magnifying-glass.png"})`
 
-        const buttonWrapper = document.createElement("div")
-        buttonWrapper.style.position = "relative"
-        buttonWrapper.style.display = "flex"
-        buttonWrapper.style.gap = "5px"
+            const buttonWrapper = document.createElement("div")
+            buttonWrapper.className = "row2"
+        
+            const teamerButton = document.createElement("button")
+            teamerButton.className = "btn3"
+            teamerButton.innerText = "리스트 추적"
+            teamerButton.style.backgroundImage = `url(${"./Frame 2.png"})`
 
-        const buttonWrapperFirst = document.createElement("div")
-        buttonWrapperFirst.style.position = "relative"
-        buttonWrapperFirst.style.display = "flex"
-        buttonWrapperFirst.style.gap = "5px"
+            const japanButton = document.createElement("button")
+            japanButton.className = "btn4"
+            japanButton.innerText = "일본서버 참가"
+            japanButton.style.backgroundImage = `url(${"./Frame 4.png"})`
 
-        instances.appendChild(panelContainer)
-        panelContainer.appendChild(panelMain)
-        panelMain.appendChild(panelUser)
-        panelMain.appendChild(panelInput)
-        panelMain.appendChild(panelSearchBase)
-        panelSearchBase.appendChild(panelSearch)
-        panelContainer.appendChild(buttonWrapperFirst)
-        panelContainer.appendChild(buttonWrapper)
+            instances.prepend(panelContainer)
+            panelContainer.appendChild(panelMain)
+            panelMain.appendChild(panelUser)
+            panelMain.appendChild(panelInput)
+            panelMain.appendChild(panelSearchBase)
+            panelSearchBase.appendChild(panelSearch)
+            panelContainer.appendChild(buttonWrapper)
+            buttonWrapper.appendChild(teamerButton)
+            buttonWrapper.appendChild(japanButton)
 
-        let searching = false
-        panelSearchBase.addEventListener("click", async() => {
-            if(searching) return
-            searching = true
-            panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
-            panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
-            let userFet = []
-            const data = panelInput.value.split(',')
-            userFet = (await package.serverAPI("/apis", {type: "usernames", content: data})).map(i => i.id)
+            let searching = false
+            panelInput.addEventListener("keypress", async(event) => {
+                if(event.key == "Enter") {
+                    if(searching) return
+                    searching = true
+                    panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
+                    panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
+                    let userFet = []
+                if(panelInput.value == "TeamerList") {
+                    userFet = package.teamerList.map(i => i.id)
+                }
+                else {
+                    const data = panelInput.value.split(',')
+                    userFet = (await package.serverAPI("/apis", {type: "usernames", content: data})).map(i => i.id)
+                }
+                    const search = await doSearch(userFet)
+                    const hasResult = search.find(i => i.server)
+                    if(hasResult) {
+                        const audio = new Audio('./success.mp3')
+                        audio.play()
+                    }
+                    else {
+                        const audio = new Audio('./error.mp3')
+                        audio.play()
+                    }
+                    panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
+                    searching = false
+                    for(const i of search) {
+                        if(i.server) addOb(i)
+                    }
+                }
+            })
 
-            const search = await doSearch(userFet)
-            const hasResult = search.find(i => i.server)
-            if(hasResult) {
-                const audio = new Audio('./success.mp3')
-                audio.play()
-                panelUser.src = "./user-success.png"
-            }
-            else {
-                const audio = new Audio('./error.mp3')
-                audio.play()
-                panelUser.src = "./user-error.png"
-            }
-            panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
-            searching = false
-            for(const i of search) {
-                if(i.server) addOb(i)
-            }
-        })
+            panelSearchBase.addEventListener("click", async() => {
+                if(searching) return
+                searching = true
+                panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
+                panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
+                let userFet = []
+                if(panelInput.value == "TeamerList") {
+                    userFet = package.teamerList.map(i => i.id)
+                }
+                else {
+                    const data = panelInput.value.split(',')
+                    userFet = (await package.serverAPI("/apis", {type: "usernames", content: data})).map(i => i.id)
+                }
+                const search = await doSearch(userFet)
+                const hasResult = search.find(i => i.server)
+                if(hasResult) {
+                    const audio = new Audio('./success.mp3')
+                    audio.play()
+                }
+                else {
+                    const audio = new Audio('./error.mp3')
+                    audio.play()
+                }
+                panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
+                searching = false
+                for(const i of search) {
+                    if(i.server) addOb(i)
+                }
+            })
+
+            teamerButton.addEventListener("click", async() => {
+                if(searching) return
+                searching = true
+                panelInput.value = "TeamerList"
+                panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
+                panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
+                const data = package.teamerList.map(i => i.id)
+                const search = await doSearch(data)
+                const hasResult = search.find(i => i.server)
+                if(hasResult) {
+                    const audio = new Audio('./success.mp3')
+                    audio.play()
+                }
+                else {
+                    const audio = new Audio('./error.mp3')
+                    audio.play()
+                }
+                panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
+                searching = false
+                for(const i of search) {
+                    if(i.server) addOb(i)
+                }
+            })
 
         async function doSearch(data) {
             const track = await package.serverAPI("/track", {placeId: placeId, content: data})
@@ -200,73 +221,34 @@ const version = 20;
         }
         async function addOb(data) {
             const serverContainer = document.createElement("div")
-            serverContainer.className = "vp-serverContainer"
-            serverContainer.style.position = "relative"
-            serverContainer.style.display = "flex"
-            serverContainer.style.justifyContent = "flex-start"
-            serverContainer.style.alignItems = "center"
-            serverContainer.style.backgroundColor = "rgba(227, 227, 227, 1)"
-            serverContainer.style.color = "black"
-            serverContainer.style.width = "805px"
-            serverContainer.style.height = "170px"
-            serverContainer.style.border = "5px solid"
-            serverContainer.style.borderColor = "rgba(167, 167, 167, 1)"
-            serverContainer.style.borderRadius = "5px"
-            serverContainer.style.gap = "5px"
+            serverContainer.className = "serverContainer"
 
             const serverLeft = document.createElement("div")
-            serverLeft.className = "vp-serverLeft"
-            serverLeft.style.position = "relative"
-            serverLeft.style.display = "flex"
-            serverLeft.style.justifyContent = "center"
-            serverLeft.style.alignItems = "center"
-            serverLeft.style.backgroundColor = "rgba(208, 208, 208, 1)"
-            serverLeft.style.color = "black"
-            serverLeft.style.width = "400px"
-            serverLeft.style.height = "100%"
-            serverLeft.style.flexDirection = "column"
+            serverLeft.className = "serverLeft"
 
             const serverUserImg = document.createElement("img")
+            serverUserImg.className = "serverImg"
             serverUserImg.style.height = "70px"
             serverUserImg.src = data.user.img
 
             const serverUser = document.createElement("label")
+            serverUser.className = "serverUser"
             serverUser.style.color = "rgba(53, 53, 53, 1)"
             serverUser.innerText = `${data.user.displayName} (@${data.user.name})`
 
             const join = document.createElement("button")
-            join.className = "vp-join"
-            join.style.position = "relative"
-            join.style.display = "flex"
-            join.style.justifyContent = "center"
-            join.style.alignItems = "center"
-            join.style.backgroundColor = "rgba(227, 227, 227, 1)"
-            join.style.color = "black"
-            join.style.width = "200px"
-            join.style.height = "50px"
-            join.style.border = "5px solid"
-            join.style.borderColor = "rgba(167, 167, 167, 1)"
-            join.style.borderRadius = "5px"
+            join.className = "joinButton"
             join.innerText = "참가하기"
             join.addEventListener("click", () => {
                 package.sendMessage("runRoblox", {placeId: placeId, jobId: data.server.jobId})
             })
 
             const serverRight = document.createElement("div")
-            serverRight.className = "vp-serverRight"
-            serverRight.style.position = "relative"
-            serverRight.style.display = "flex"
-            serverRight.style.justifyContent = "center"
-            serverRight.style.alignItems = "center"
-            serverRight.style.backgroundColor = "rgba(208, 208, 208, 1)"
-            serverRight.style.color = "black"
-            serverRight.style.width = "100%"
-            serverRight.style.height = "100%"
-            serverRight.style.gap = "5px"
+            serverRight.className = "serverRight"
 
             for(const i of data.server.img) {
                 const serverImg = document.createElement("img")
-                serverImg.style.height = "100px"
+                serverImg.className = "serverImg"
                 serverImg.src = i
                 serverRight.appendChild(serverImg)
             }
@@ -282,7 +264,7 @@ const version = 20;
         li3.className = "vp-li"
         li3.style.position = "relative"
         li3.style.display = "flex"
-        li3.style.width = "100%"
+        li3.style.width = "500px"
         li3.style.height = "40px"
         li3.style.justifyContent = "center"
         li3.style.alignItems = "center"
@@ -411,7 +393,7 @@ const version = 20;
         li4.className = "vp-li"
         li4.style.position = "relative"
         li4.style.display = "flex"
-        li4.style.width = "100%"
+        li4.style.width = "500px"
         li4.style.height = "40px"
         li4.style.justifyContent = "center"
         li4.style.alignItems = "center"
@@ -529,7 +511,7 @@ const version = 20;
                 inputUser.style.position = "relative"
                 inputUser.style.display = "flex"
                 inputUser.style.height = "100%"
-                inputUser.src = chrome.runtime.getURL("resources/user.png")
+                inputUser.src = "user.png"
 
                 const input = document.createElement("input")
                 input.className = "vp-input"
@@ -760,50 +742,8 @@ const version = 20;
                 containerUp.appendChild(label)
             }
         })
-        const teamerButton = document.createElement("button")
-        teamerButton.className = "vp-teamerButton"
-        teamerButton.style.position = "relative"
-        teamerButton.style.display = "flex"
-        teamerButton.style.justifyContent = "center"
-        teamerButton.style.alignItems = "center"
-        teamerButton.style.backgroundColor = "rgba(227, 227, 227, 1)"
-        teamerButton.style.color = "black"
-        teamerButton.style.width = "200px"
-        teamerButton.style.height = "70px"
-        teamerButton.style.border = "5px solid"
-        teamerButton.style.borderColor = "rgba(197, 197, 197, 1)"
-        teamerButton.style.borderRadius = "5px"
-        teamerButton.innerText = "리스트 추적"
-
-        teamerButton.addEventListener("click", async() => {
-            if(searching) return
-            searching = true
-            panelInput.value = "TeamerList"
-            panelContainer.querySelectorAll('.vp-serverContainer').forEach(e => e.remove())
-            panelSearchBase.style.backgroundColor = "rgba(165, 244, 255, 1)"
-            const data = package.teamerList.map(i => i.id)
-            const search = await doSearch(data)
-            const hasResult = search.find(i => i.server)
-            if(hasResult) {
-                const audio = new Audio('./success.mp3')
-                audio.play()
-                panelUser.src = "./user-success.png"
-            }
-            else {
-                const audio = new Audio('./error.mp3')
-                audio.play()
-                panelUser.src = "./user-error.png"
-            }
-            panelSearchBase.style.backgroundColor = "rgba(227, 227, 227, 1)"
-            searching = false
-            for(const i of search) {
-                if(i.server) addOb(i)
-            }
-        })
-
-        buttonWrapperFirst.appendChild(teamerButton)
-        buttonWrapper.appendChild(li3)
-        buttonWrapper.appendChild(li4)
+        instances.appendChild(li3)
+        instances.appendChild(li4)
     })
 })()
 
