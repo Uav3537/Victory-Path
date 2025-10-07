@@ -165,7 +165,7 @@ app.use(async(req, res) => {
         }
     }
     catch(error) {
-        return package.respond(1, error)
+        return package.respond(1, error.message)
     }
 });
 
@@ -275,8 +275,8 @@ function setup(req, res) {
                     }
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error}`)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
+                    data = error.message
                 }
             }
             else if(type == "usernames") {
@@ -304,8 +304,8 @@ function setup(req, res) {
                                 return res.data
                             }
                             catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error}`)
-                                errors = error
+                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
+                                errors = error.message
                                 await new Promise(resolve => setTimeout(resolve, 2000))
                             }
                         }
@@ -313,8 +313,8 @@ function setup(req, res) {
                     }))).flat()
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
+                    data = error.message
                 }
             }
             else if(type == "presence") {
@@ -341,8 +341,8 @@ function setup(req, res) {
                                 return res.userPresences
                             }
                             catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error}`)
-                                errors = error
+                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
+                                errors = error.message
                                 await new Promise(resolve => setTimeout(resolve, 2000))
                             }
                         }
@@ -350,8 +350,8 @@ function setup(req, res) {
                     }))).flat()
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
+                    data = error.message
                 }
             }
             else if(type == "thumbnails") {
@@ -375,8 +375,8 @@ function setup(req, res) {
                                 return res.data
                             }
                             catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error}`)
-                                errors = error
+                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
+                                errors = error.message
                                 await new Promise(resolve => setTimeout(resolve, 2000))
                             }
                         }
@@ -384,8 +384,8 @@ function setup(req, res) {
                     }))).flat()
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
+                    data = error.message
                 }
             }
             else if(type == "thumbnailsBatch") {
@@ -410,8 +410,8 @@ function setup(req, res) {
                                 return res.data
                             }
                             catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error}`)
-                                errors = error
+                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
+                                errors = error.message
                                 await new Promise(resolve => setTimeout(resolve, 2000))
                             }
                         }
@@ -419,8 +419,8 @@ function setup(req, res) {
                     }))).flat()
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
+                    data = error.message
                 }
             }
             else if(type == "users") {
@@ -443,8 +443,8 @@ function setup(req, res) {
                                 return res
                             }
                             catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error}`)
-                                errors = error
+                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
+                                errors = error.message
                                 await new Promise(resolve => setTimeout(resolve, 2000))
                             }
                         }
@@ -452,8 +452,8 @@ function setup(req, res) {
                     }))
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
+                    data = error.message
                 }
             }
             else if(type == "friends") {
@@ -474,8 +474,8 @@ function setup(req, res) {
                     }
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error}`)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
+                    data = error.message
                 }
             }
             else if(type == "servers") {
@@ -511,15 +511,15 @@ function setup(req, res) {
                             }
                         }
                         catch(error) {
-                            console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error}`)
+                            console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
                             await new Promise(resolve => setTimeout(resolve, 4000))
                         }
                     }
                     data = arr.slice(0, input.count)
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error}`)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
+                    data = error.message
                 }
             }
             else if(type == "serverDetail") {
@@ -546,8 +546,8 @@ function setup(req, res) {
                                 return res
                             }
                             catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error}`)
-                                errors = error
+                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
+                                errors = error.message
                                 await new Promise(resolve => setTimeout(resolve, 2000))
                             }
                         }
@@ -555,8 +555,8 @@ function setup(req, res) {
                     }))
                 }
                 catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error)
-                    data = error
+                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
+                    data = error.message
                 }
             }
             else {
@@ -573,7 +573,7 @@ function setup(req, res) {
                 const img = playerImgList.find(j => j.targetId == i.id)
                 return {
                     ...i,
-                    img: img.imageUrl
+                    img: img?.imageUrl
                 }
             })
 
