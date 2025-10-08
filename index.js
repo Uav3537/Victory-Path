@@ -250,7 +250,7 @@ function setup(req, res) {
             if(!data) {
                 return null
             }
-            const isExpired =  (new Date(data.expire) > now)
+            const isExpired = new Date(data.expire) < now
             return {...data, expired: isExpired}
         },
         sliceArray: function(array, chunkSize) {
