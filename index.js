@@ -19,11 +19,12 @@ app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
 
 app.set('trust proxy', true);
 
+app.use(express.static('resources'))
+
 app.listen(PORT, () => {
     console.log(`✅Server running on port ${PORT}`)
 })
 
-app.use(express.static('resources'))
 const path = require("path");
 
 app.get("/mobile", (req, res) => {
