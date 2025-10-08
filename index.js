@@ -280,7 +280,7 @@ function setup(req, res) {
                         })
                         const res = await fet.json()
                         if(res.errors) {
-                            throw new Error(data.errors?.[0])
+                            throw new Error(res.errors?.[0]?.message)
                         }
                         data = res
                     }
