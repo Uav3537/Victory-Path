@@ -86,7 +86,13 @@ app.use(async(req, res) => {
             return package.respond(0, content)
         }
         req.token = req.body?.token
-        req.found = await package.findToken(req.token)
+        req.found = (await package.findToken(req.token))
+        if(!req.found?.token) {
+            return package.respond(3)
+        }
+        if(req.found?.expired) {
+            return package.respond(4)
+        }
         req.grade = req.found.grade
         req.user = await package.robloxAPI("authorization", req.rosecurity)
         console.log(`${req.user?.name} [등급: ${req.grade}]의 요청: ${req.path}`)
@@ -165,6 +171,7 @@ app.use(async(req, res) => {
         }
     }
     catch(error) {
+        console.log(`전체 에러: ${error.message}`)
         return package.respond(1, error.message)
     }
 });
@@ -238,8 +245,9 @@ function setup(req, res) {
             const table = await this.supabaseAPI("get", "tokens")
 
             const now = Date.now();
-            const data = table.find(i => i.token == token && new Date(i.expire) > now) || null
-            return data
+            const data = table.find(i => i.token == token)
+            const isExpired =  (new Date(data.expire) > now)
+            return {...data, expired: isExpired}
         },
         sliceArray: function(array, chunkSize) {
             const result = []
