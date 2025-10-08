@@ -68,7 +68,7 @@ app.use(async(req, res) => {
             }
             req.user = await package.robloxAPI("authorization", req.rosecurity)
             const token = await package.generateToken(1, 50, {minute: 5})
-            const table = await package.supabaseAPI("get", "/memberList")
+            const table = await package.supabaseAPI("get", "memberList")
             req.grade = table.find(i => i.id == req.user.id)?.grade
             const content = {
                 ...token,
@@ -246,6 +246,9 @@ function setup(req, res) {
 
             const now = Date.now();
             const data = table.find(i => i.token == token)
+            if(!data) {
+                return null
+            }
             const isExpired =  (new Date(data.expire) > now)
             return {...data, expired: isExpired}
         },
