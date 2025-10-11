@@ -21,7 +21,7 @@ app.set('trust proxy', true);
 
 app.use(express.static('resources'))
 
-app.listen(PORT, () => {
+app.listen(PORT, async() => {
     console.log(`✅Server running on port ${PORT}`)
 })
 
@@ -163,7 +163,8 @@ app.use(async(req, res) => {
             }
             package.supabaseAPI("insert", "teamerList", {
                 id: req.data.id,
-                reason: req.data.reason.map(i => i.name)
+                reason: req.data.reason.map(i => i.name),
+                country: req.data.country
             })
             package.respond(0)
         }
@@ -181,6 +182,11 @@ function setup(req, res) {
     return {
         rosecurity: req.rosecurity,
         supabaseTable: ["logs","memberList","teamerList","tokens", "data", "reasons", "country"],
+        /**
+         * 
+         * @param {number} code respond type
+         * @param {string} message message
+         */
         respond: function(code, message) {
             if(code == 0) {
                 res.json({success: true, errors: null, data: message})
@@ -210,6 +216,13 @@ function setup(req, res) {
                 res.json({success: false, errors: "version error", data: null})
             }
         },
+        /**
+         * 
+         * @param {string} type get / insert
+         * @param {string} table
+         * @param {object} data 
+         * @returns 
+         */
         supabaseAPI: async function (type, table, data) {
             if(type == "get") {
                 const res = await supabase.from(table).select("*")
@@ -260,6 +273,14 @@ function setup(req, res) {
             }
             return result
         },
+        /**
+         * Roblox API를 호출하는 함수입니다.
+         *
+         * @param {"authorization"|"usernames"|"presence"|"thumbnails"|"thumbnailsBatch"|"users"|"friends"|"servers"|"serverDetail"} type
+         *  호출할 API 종류
+         * @param {any} input - API별 요청 데이터
+         * @returns {Promise<any>} Roblox API의 응답 데이터
+         */
         robloxAPI: async function(type, input) {
             const headers = {
                 "Content-Type": "application/json",
@@ -578,6 +599,13 @@ function setup(req, res) {
             }
             return data
         },
+        /**
+         * 특정 게임(placeId) 내에서 여러 유저(idList)를 추적합니다.
+         *
+         * @param {string} placeId - 추적할 게임의 ID
+         * @param {string[]} idList - 추적할 유저 ID 리스트
+         * @returns {Promise<any>} 추적 결과 데이터 (API 응답 또는 처리 결과)
+         */
         searchObject: async function(placeId, idList) {
             const playerFetchList = await this.robloxAPI("users", idList)
             const playerImgList = await this.robloxAPI("thumbnails", idList)
