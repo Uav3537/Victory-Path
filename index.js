@@ -161,11 +161,8 @@ app.use(async(req, res) => {
                 package.respond(7)
                 return
             }
-            package.supabaseAPI("insert", "teamerList", {
-                id: req.data.id,
-                reason: req.data.reason.map(i => i.name),
-                country: req.data.country
-            })
+            console.log(req.data)
+            package.supabaseAPI("insert", "teamerList", [{...req.data}])
             package.respond(0)
         }
         else {
