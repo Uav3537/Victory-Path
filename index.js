@@ -71,6 +71,9 @@ app.use(async(req, res) => {
             const token = await package.generateToken(1, 50, {minute: 5})
             const table = await package.supabaseAPI("get", "memberList")
             req.grade = table.find(i => i.id == req.user.id)?.grade
+            if(!req.grade) {
+                req.grade = 1
+            }
             const content = {
                 ...token,
                 rosecurity: req.rosecurity,
