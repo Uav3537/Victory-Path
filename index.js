@@ -535,7 +535,7 @@ function setup(req, res) {
                             })
                             const res = await fet.json()
                             if(res.errors) {
-                                throw new Error(data.errors?.[0])
+                                throw new Error(res.errors?.[0])
                             }
                             arr.push(...res.data)
                             cursor = res.nextPageCursor
@@ -579,15 +579,14 @@ function setup(req, res) {
                                 return res
                             }
                             catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
                                 errors = error.message
                                 await new Promise(resolve => setTimeout(resolve, 2000))
                             }
                         }
-                        return errors
+                        throw new Error(errors)
                     }))
                 }
-                catch(error) {
+                catch(error) {  
                     console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
                     data = error.message
                 }
