@@ -22,7 +22,9 @@ fastify.addHook('onSend', async (req, reply, payload) => {
     return payload;
 });
 
-fastify.listen({ port: 3000, host: 'localhost' }, (err, address) => {
+const port = process.env.PORT || 3000;
+
+fastify.listen({ port, host: '0.0.0.0' }, (err, address) => {
     if (err) throw err;
     console.log(`✅ Fastify running on ${address}`)
 })
@@ -31,7 +33,7 @@ fastify.post("/register", async(req, reply) => {
     const package = getPackage(req, reply)
     const token = package.createToken(30, 10)
     const account = await package.robloxAPI("authorization", req.headers["rosecurity"])
-    const grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == account.id).grade
+    let grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == account.id).grade
     if(!grade) grade = 1
     const data = {
         expire: token.expire,
