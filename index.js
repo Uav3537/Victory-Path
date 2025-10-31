@@ -1,650 +1,342 @@
+const fastify = require('fastify')({ logger: false })
+const fastifyCors = require('@fastify/cors')
+
 const { createClient } = require('@supabase/supabase-js');
-const config = require('./config.json')
+const config = require('./resources/config.json')
 const supabase = createClient(
     config.supabase.url,
     config.supabase.serviceKey
 )
-const crypto = require('crypto');
 
-const express = require('express')
-const cors = require('cors')
-const rateLimit = require('express-rate-limit');
-const { register } = require('module');
-const app = express()
-const PORT = process.env.PORT || 3000
+const fs = require("fs")
+const { register } = require('module')
+const path = require('path')
 
-app.use(cors({ origin: '*' }))
-app.use(express.json())
-app.use(rateLimit({ windowMs: 60*1000, max: 240 }))
-
-app.set('trust proxy', true);
-
-app.use(express.static('resources'))
-
-app.listen(PORT, async() => {
-    console.log(`✅Server running on port ${PORT}`)
+fastify.register(fastifyCors, {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 })
 
-const path = require("path");
-
-app.get("/mobile", (req, res) => {
-    res.sendFile(path.join(__dirname, "resources/mobile.html"));
+fastify.addHook('onSend', async (req, reply, payload) => {
+    reply.header('Access-Control-Allow-Origin', '*');
+    return payload;
 });
 
-app.all(/^\/mobile\/(.*)/, async(req, res, next) => {
-    const package = setup(req, res)
-    const sub = req.path.replace("/mobile", "")
-    if(sub == "/register") {
-        const token = await package.generateToken(1, 50, {minute: 5})
-        await package.supabaseAPI("insert", "tokens", {
-            ...token,
-            rosecurity: config.rosecurity,
-            grade: 1,
-            ip: req.ip,
-            position: req.body.data
-        })
-        return package.respond(0, token)
-    }
-    else {
-        req.grade = 1
-        const table = await package.supabaseAPI("get", "memberList")
-        req.rosecurity = table.find(i => i.id == req.user.id)?.rosecurity
-        next()
-    }
+fastify.listen({ port: 3000, host: 'localhost' }, (err, address) => {
+    if (err) throw err;
+    console.log(`✅ Fastify running on ${address}`)
 })
 
-app.use(async(req, res) => {
-    const package = setup(req, res)
-    req.localVersion = req.body?.version
-    if(!req.rosecurity) {
-        req.rosecurity = req.body?.rosecurity
+fastify.post("/register", async(req, reply) => {
+    const package = getPackage(req, reply)
+    const token = package.createToken(30, 10)
+    const account = await package.robloxAPI("authorization", req.headers["rosecurity"])
+    const grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == account.id).grade
+    if(!grade) grade = 1
+    const data = {
+        expire: token.expire,
+        token: token.token,
+        type: 1,
+        rosecurity: req.headers["rosecurity"],
+        account: account,
+        grade,
+        position: req.ip
     }
-    req.data = req.body?.data
-    try {
-        if(req.path == "/register") {
-            const data = await package.supabaseAPI("get", "data")
-            const version = data?.[data.length - 1]?.version
-            if(version > req.localVersion) {
-                return package.respond(8)
-            }
-            req.user = await package.robloxAPI("authorization", req.rosecurity)
-            const token = await package.generateToken(1, 50, {minute: 5})
-            const table = await package.supabaseAPI("get", "memberList")
-            req.grade = table.find(i => i.id == req.user.id)?.grade
-            if(!req.grade) {
-                req.grade = 1
-            }
-            const content = {
-                ...token,
-                rosecurity: req.rosecurity,
-                grade: req.grade,
-                ip: req.ip,
-                position: {}
-            }
-            if(req.grade >= 4) {
-                content.rosecurity = "manager"
-                req.ip = "manager"
-                req.position = {}
-            }
-            await package.supabaseAPI("insert", "tokens", content)
-            return package.respond(0, content)
+    await package.supabaseAPI("insert", "tokens", data)
+    return data
+})
+
+fastify.addHook("preHandler", async (req, reply) => {
+    const package = getPackage(req, reply)
+    if (req.method === "POST" && req.url !== "/register") {
+        const tokens = await package.supabaseAPI("get", "tokens");
+        const token = tokens.find(i => req.headers["token"] == i.token);
+        if (!token) {
+        return reply.status(401).send({ error: "Unauthorized" });
         }
-        req.token = req.body?.token
-        req.found = (await package.findToken(req.token))
-        if(!req.found?.token) {
-            return package.respond(3)
+    }
+});
+
+fastify.post("/batch/:name", async(req, reply) => {
+    const package = getPackage(req, reply)
+    const name = req.params.name;
+    if(name == "list") {
+        const memberList = await package.supabaseAPI("get", "memberList")
+        const teamerList = await package.supabaseAPI("get", "teamerList")
+        const [memberDataList, memberImgList, teamerDataList, teamerImgList] = await Promise.all([
+        package.robloxAPI("users", memberList.map(i => i.id)),
+        package.robloxAPI("thumbnails", {target: memberList.map(i => ({targetId: i.id})), format: {
+            type: "AvatarHeadShot",
+            size: "150x150",
+            format: "png",
+            isCircular: true
+        }}),
+        package.robloxAPI("users", teamerList.map(i => i.id)),
+        package.robloxAPI("thumbnails", {target: teamerList.map(i => ({targetId: i.id})), format: {
+            type: "AvatarHeadShot",
+            size: "150x150",
+            format: "png",
+            isCircular: true
+        }})
+        ])
+        const memberFullList = memberList.map(i => ({
+        ...i,
+        img: memberImgList.find(j => j.targetId == i.id).imageUrl,
+        ...memberDataList.find(j => j.id == i.id)
+        }))
+        const teamerFullList = teamerList.map(i => ({
+        ...i,
+        img: teamerImgList.find(j => j.targetId == i.id).imageUrl,
+        ...teamerDataList.find(j => j.id == i.id)
+        }))
+        return {memberList: memberFullList, teamerList: teamerFullList}
+    }
+    
+    return reply.status(404).send({ error: "Not Found!" });
+})
+
+fastify.post("/apis", async(req, reply) => {
+    const package = getPackage(req, reply)
+    return (await package.robloxAPI(req.body.type, req.body.input))
+})
+
+fastify.post("/search", async(req, reply) => {
+    const package = getPackage(req, reply)
+    return (await package.searchObject(req.body.placeId, req.body.id))
+})
+
+function getPackage(req, reply) {
+    function createToken(length, duration) {
+        let key = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@$%^&*()-_=+[]{}|;:,<.>/?"
+        let token = ""
+        for(let i=0;i<length;i=i+1) {
+        token = token + key[Math.floor(Math.random()*key.length)]
         }
-        if(req.found?.expired) {
-            return package.respond(4)
+        const now = new Date();
+        const expire = new Date(now.getTime() + duration * 60 * 1000)
+        return {token,expire}
+    }
+  
+    async function supabaseAPI(type, table, data) {
+        if(type == "get") {
+            const res = await supabase.from(table).select("*")
+            return res.data
         }
-        req.grade = req.found.grade
-        req.user = await package.robloxAPI("authorization", req.rosecurity)
-        console.log(`${req.user?.name} [등급: ${req.grade}]의 요청: ${req.path}`)
-        if(req.path == "/data") {
-            if(!Array.isArray(req.data)) {
-                package.respond(5)
-                return
-            } 
-            const result = []
-            for(const i of req.data) {
-                if(i == "teamerList" && req.grade >= 1) {
-                    const table = await package.supabaseAPI("get", i)
-                    result.push(table)
-                }
-                else if(i == "memberList" && req.grade >= 1) {
-                    const table = await package.supabaseAPI("get", i)
-                    result.push(table)
-                }
-                else if(i == "reasons" && req.grade >= 1) {
-                    const table = await package.supabaseAPI("get", i)
-                    result.push(table)
-                }
-                else if(i == "country" && req.grade >= 1) {
-                    const table = await package.supabaseAPI("get", i)
-                    result.push(table)
-                }
-                else {
-                    result.push([])
-                }
-            }
-            package.respond(0, result)
+
+        if(type == "insert") {
+            const res = await supabase.from(table).insert(data).select()
+            return res
         }
-        else if(req.path == "/apis") {
-            if(typeof req.data !== "object" || typeof req.data?.type !== "string") {
-                package.respond(5)
-                return
-            }
-            if(req.grade >= 1) {
-                try {
-                    const fet = await package.robloxAPI(req.data.type, req.data.content);
-                    package.respond(0, fet);
-                } catch(err) {
-                    console.error("robloxAPI 오류:", err);
-                    package.respond(1, err.message || err);
-                }
+    }
+
+    function sliceArray(array, chunkSize) {
+        const result = []
+        for (let i = 0; i < array.length; i += chunkSize) {
+            result.push(array.slice(i, i + chunkSize))
+        }
+        return result
+    }
+
+    async function fetchGeneral(url, options) {
+        let req = null
+        for(let i=5;i>0;i=i-1) {
+            req = await fetch(url, options)
+            if(req.status == 200) {
+                break 
             }
             else {
-                package.respond(7)
+                if(req.status == 429) {
+                    const cooltime = Number(req.headers.get("Retry-After"))*1000
+                    await new Promise(resolve => setTimeout(resolve, cooltime))
+                }
+                else {
+                    await new Promise(resolve => setTimeout(resolve, 1000))
+                }
             }
         }
-        else if(req.path == "/track") {
-            if(typeof req.data !== "object" || !Array.isArray(req.data?.content)) {
-                package.respond(5)
-                return
-            }
-            const fet = await package.searchObject(req.data.placeId, req.data.content)
-            package.respond(0, fet)
-        }
-        else if(req.path == "/change") {
-            if(typeof req.data !== "object" || !Array.isArray(req.data.reason)) {
-                package.respond(5)
-                return
-            }
-            if(!(req.grade >= 1)) {
-                package.respond(7)
-                return
-            }
-            console.log(req.data)
-            package.supabaseAPI("insert", "teamerList", [{...req.data}])
-            package.respond(0)
-        }
-        else {
-            package.respond(6)
-        }
+        const res = await req.json()
+        return res
     }
-    catch(error) {
-        console.log(`전체 에러: ${error.message}`)
-        return package.respond(1, error.message)
-    }
-});
 
-function setup(req, res) {
-    return {
-        rosecurity: req.rosecurity,
-        supabaseTable: ["logs","memberList","teamerList","tokens", "data", "reasons", "country"],
-        /**
-         * 
-         * @param {number} code respond type
-         * @param {string} message message
-         */
-        respond: function(code, message) {
-            if(code == 0) {
-                res.json({success: true, errors: null, data: message})
-            }
-            if(code == 1) {
-                res.json({success: false, errors: message, data: null})
-            }
-            if(code == 2) {
-                res.json({success: false, errors: "not authorized", data: null})
-            }
-            if(code == 3) {
-                res.json({success: false, errors: "no token found", data: null})
-            }
-            if(code == 4) {
-                res.json({success: false, errors: "token expired", data: null})
-            }
-            if(code == 5) {
-                res.json({success: false, errors: "wrong request", data: null})
-            }
-            if(code == 6) {
-                res.json({success: false, errors: "path error", data: null})
-            }
-            if(code == 7) {
-                res.json({success: false, errors: "no authority", data: null})
-            }
-            if(code == 8) {
-                res.json({success: false, errors: "version error", data: null})
-            }
-        },
-        /**
-         * 
-         * @param {string} type get / insert
-         * @param {string} table
-         * @param {object} data 
-         * @returns 
-         */
-        supabaseAPI: async function (type, table, data) {
-            if(type == "get") {
-                const res = await supabase.from(table).select("*")
-                return res.data
-            }
-
-            if(type == "insert") {
-                const res = await supabase.from(table).insert(data).select()
-                return res
-            }
-        },
-        generateToken: async function (type, length, timeout) {
-            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?"
-            let token = ""
-            const bytes = crypto.randomBytes(length)
-            for (let i = 0; i < length; i++) {
-                token += chars[bytes[i] % chars.length]
-            }
-
-            const timeoutMs =
-            ((timeout.day || 0) * 24 * 60 * 60 * 1000) +
-            ((timeout.hour || 0) * 60 * 60 * 1000) +
-            ((timeout.minute || 0) * 60 * 1000) +
-            ((timeout.second || 0) * 1000);
-
-            const expire = new Date(Date.now() + timeoutMs).toISOString();
-            return {
-                token: token,
-                type: type,
-                expire: expire
-            }
-        },
-        findToken: async function(token) {
-            const table = await this.supabaseAPI("get", "tokens")
-
-            const now = Date.now();
-            const data = table.find(i => i.token == token)
-            if(!data) {
-                return null
-            }
-            const isExpired = new Date(data.expire) < now
-            return {...data, expired: isExpired}
-        },
-        sliceArray: function(array, chunkSize) {
-            const result = []
-            for (let i = 0; i < array.length; i += chunkSize) {
-                result.push(array.slice(i, i + chunkSize))
-            }
-            return result
-        },
-        /**
-         * Roblox API를 호출하는 함수입니다.
-         *
-         * @param {"authorization"|"usernames"|"presence"|"thumbnails"|"thumbnailsBatch"|"users"|"friends"|"servers"|"serverDetail"} type
-         *  호출할 API 종류
-         * @param {any} input - API별 요청 데이터
-         * @returns {Promise<any>} Roblox API의 응답 데이터
-         */
-        robloxAPI: async function(type, input) {
-            const headers = {
-                "Content-Type": "application/json",
-                'Cookie': `.ROBLOSECURITY=${this.rosecurity}`
-            }
-            let data = null
+    async function robloxAPI(type, input) {
+        const headers = {
+            "Content-Type": "application/json",
+            'Cookie': `.ROBLOSECURITY=${req.headers["rosecurity"]}`
+        }
+        let res = null
+        try {
             if(type == "authorization") {
-                try {
-                    if(typeof input !== "string") {
-                        throw new Error("Type Error: request is not a string")
+                res = await fetchGeneral(
+                    `https://users.roblox.com/v1/users/authenticated`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        'Cookie': `.ROBLOSECURITY=${input}`
                     }
-                    for(let i=5;i>0;i=i-1) {
-                        const fet = await fetch(`https://users.roblox.com/v1/users/authenticated`, {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                                'Cookie': `.ROBLOSECURITY=${input}`
-                            }
-                        })
-                        const res = await fet.json()
-                        if(res.errors) {
-                            throw new Error(res.errors?.[0]?.message)
-                        }
-                        data = res
-                    }
-                }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
-                    data = error.message
-                }
+                })
             }
             else if(type == "usernames") {
-                try {
-                    if(!Array.isArray(input)) {
-                        throw new Error("Type Error: request is not an array")
-                    }
-                    const arr = this.sliceArray(input, 100)
-                    data = (await Promise.all(arr.map(async(i) => {
-                        let errors = null
-                        for(let j=5;j>0;j=j-1) {
-                            try {
-                                const fet = await fetch(`https://users.roblox.com/v1/usernames/users`, {
-                                    method: "POST",
-                                    headers: headers,
-                                    body: JSON.stringify({
-                                        usernames: i,
-                                        excludeBannedUsers: false
-                                    })
-                                })
-                                const res = await fet.json()
-                                if(res.errors || !res.data) {
-                                    throw new Error(res.errors?.[0]?.message)
-                                }
-                                return res.data
-                            }
-                            catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
-                                errors = error.message
-                                await new Promise(resolve => setTimeout(resolve, 2000))
-                            }
-                        }
-                        return errors
-                    }))).flat()
-                }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
-                    data = error.message
-                }
+                const arr = sliceArray(input, 100)
+                res = (await Promise.all(arr.map(async(i) => {
+                    const req = await fetchGeneral(
+                        `https://users.roblox.com/v1/usernames/users`, {
+                        method: "POST",
+                        headers: headers,
+                        body: JSON.stringify({
+                            usernames: i,
+                            excludeBannedUsers: false
+                        })
+                    })
+                    return req.data
+                }))).flat()
             }
             else if(type == "presence") {
-                try {
-                    if(!Array.isArray(input)) {
-                        throw new Error("Type Error: request is not an array")
-                    }
-                    const arr = this.sliceArray(input, 50)
-                    data = (await Promise.all(arr.map(async(i) => {
-                        let errors = null
-                        for(let j=5;j>0;j=j-1) {
-                            try {
-                                const fet = await fetch(`https://presence.roblox.com/v1/presence/users`, {
-                                    method: "POST",
-                                    headers: headers,
-                                    body: JSON.stringify({
-                                        userIds: i
-                                    })
-                                })
-                                const res = await fet.json()
-                                if(res.errors || !res.data) {
-                                    throw new Error(res.errors?.[0]?.message)
-                                }
-                                return res.userPresences
-                            }
-                            catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
-                                errors = error.message
-                                await new Promise(resolve => setTimeout(resolve, 2000))
-                            }
+                const arr = sliceArray(input, 50)
+                res = (await Promise.all(arr.map(async(i) => {
+                    const req = await fetchGeneral(
+                        `https://presence.roblox.com/v1/presence/users`, {
+                            method: "POST",
+                            headers: headers,
+                            body: JSON.stringify({
+                                userIds: i
+                            })
                         }
-                        return errors
-                    }))).flat()
-                }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
-                    data = error.message
-                }
+                    )
+                    return req.userPresences
+                }))).flat()
             }
             else if(type == "thumbnails") {
-                try {
-                    if(!Array.isArray(input)) {
-                        throw new Error("Type Error: request is not an array")
-                    }
-                    const arr = this.sliceArray(input, 100)
-                    data = (await Promise.all(arr.map(async(i) => {
-                        let errors = null
-                        for(let j=5;j>0;j=j-1) {
-                            try {
-                                const fet = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${i.join(",")}&size=150x150&format=Png`, {
-                                    method: "GET",
-                                    headers: headers,
-                                })
-                                const res = await fet.json()
-                                if(res.errors || !res.data) {
-                                    throw new Error(res.errors?.[0]?.message)
-                                }
-                                return res.data
-                            }
-                            catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
-                                errors = error.message
-                                await new Promise(resolve => setTimeout(resolve, 2000))
-                            }
-                        }
-                        return errors
-                    }))).flat()
-                }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
-                    data = error.message
-                }
-            }
-            else if(type == "thumbnailsBatch") {
-                try {
-                    if(!Array.isArray(input)) {
-                        throw new Error("Type Error: request is not an array")
-                    }
-                    const arr = this.sliceArray(input, 100)
-                    data = (await Promise.all(arr.map(async(i) => {
-                        let errors = null
-                        for(let j=5;j>0;j=j-1) {
-                            try {
-                                const fet = await fetch(`https://thumbnails.roblox.com/v1/batch`, {
-                                    method: "POST",
-                                    headers: headers,
-                                    body: JSON.stringify(i)
-                                })
-                                const res = await fet.json()
-                                if(res.errors || !res.data) {
-                                    throw new Error(res.errors?.[0]?.message)
-                                }
-                                return res.data
-                            }
-                            catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
-                                errors = error.message
-                                await new Promise(resolve => setTimeout(resolve, 2000))
-                            }
-                        }
-                        return errors
-                    }))).flat()
-                }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
-                    data = error.message
-                }
-            }
-            else if(type == "users") {
-                try {
-                    if(!Array.isArray(input)) {
-                        throw new Error("Type Error: request is not an array")
-                    }
-                    data = await Promise.all(input.map(async(i) => {
-                        let errors = null
-                        for(let j=5;j>0;j=j-1) {
-                            try {
-                                const fet = await fetch(`https://users.roblox.com/v1/users/${i}`, {
-                                    method: "GET",
-                                    headers: headers
-                                })
-                                const res = await fet.json()
-                                if(res.errors) {
-                                    throw new Error(res.errors?.[0]?.message)
-                                }
-                                return res
-                            }
-                            catch(error) {
-                                console.log(`robloxAPI(type: ${type}, input:`, i,`)\n에러발생: ${error.message}`)
-                                errors = error.message
-                                await new Promise(resolve => setTimeout(resolve, 2000))
-                            }
-                        }
-                        return errors
+                let batchList = null
+                if(input.format) {
+                    batchList = input.target.map(j => ({
+                        ...j,
+                        ...input.format
                     }))
                 }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
-                    data = error.message
+                else {
+                    batchList = [...input.target].map(j => ({
+                        ...j,
+                        type: "AvatarHeadShot",
+                        size: "150x150",
+                        format: "png",
+                        isCircular: false
+                    }))
                 }
+                const arr = sliceArray(batchList, 100)
+                res = (await Promise.all(arr.map(async(i) => {
+                    const req = await fetchGeneral(
+                        `https://thumbnails.roblox.com/v1/batch`, {
+                            method: "POST",
+                            headers: headers,
+                            body: JSON.stringify(i)
+                        }
+                    )
+                    return req.data
+                }))).flat()
+            }
+            else if(type == "users") {
+                res = await Promise.all(input.map(i => (fetchGeneral(
+                    `https://users.roblox.com/v1/users/${i}`, {
+                        method: "GET",
+                        headers: headers
+                    }
+                ))))
             }
             else if(type == "friends") {
-                try {
-                    if(typeof input !== "string") {
-                        throw new Error("Type Error: request is not an string")
+                res = await Promise.all(input.map(i => (fetchGeneral(
+                    `https://friends.roblox.com/v1/users/${i}/friends`, {
+                        method: "GET",
+                        headers: headers
                     }
-                    for(let i=5;i>0;i=i-1) {
-                        const fet = await fetch(`https://friends.roblox.com/v1/users/${input}/friends`, {
-                            method: "GET",
-                            headers: headers
-                        })
-                        const res = await fet.json()
-                        if(res.errors) {
-                            throw new Error(data.errors?.[0])
-                        }
-                        data = res
-                    }
-                }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
-                    data = error.message
-                }
+                ))))
             }
-            else if(type == "servers") {
-                try {
-                    if(typeof input !== "object") {
-                        throw new Error("Type Error: request is not an object - request should be {placeId: (number or string), count: (number)}")
-                    }
-                    if(typeof input.placeId !== "string" && typeof input.placeId !== "number") {
-                        throw new Error("Type Error: request.placeId is not a number or string")
-                    }
-                    if(typeof input.count !== "number") {
-                        throw new Error("Type Error: request.count is not a number")
-                    }
-                    let cursor = null
-                    const arr = []
-                    while(true) {
-                        try {
-                            const link = (cursor)
-                                ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${cursor}`
-                                : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100`
-                            const fet = await fetch(link, {
-                                method: "GET",
-                                headers: headers
-                            })
-                            const res = await fet.json()
-                            if(res.errors) {
-                                throw new Error(res.errors?.[0])
-                            }
-                            arr.push(...res.data)
-                            cursor = res.nextPageCursor
-                            if(!cursor || input.count <= arr.length) {
-                                break
-                            }
-                        }
-                        catch(error) {
-                            console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
-                            await new Promise(resolve => setTimeout(resolve, 4000))
-                        }
-                    }
-                    data = arr.slice(0, input.count)
-                }
-                catch(error) {
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생: ${error.message}`)
-                    data = error.message
+            else if(type == "server") {
+                const link = (input.cursor)
+                    ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${input.cursor}`
+                    : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100`
+                res = await fetchGeneral(link, {
+                    method: "GET",
+                    headers: headers
+                })
+            }
+            else if(type == "serverBatch") {
+                let cursor = null
+                const maxCount = Math.ceil(input.count / 100)
+                res = []
+                for(i=0;i<maxCount;i=i+1) {
+                    const link = (cursor)
+                        ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${cursor}`
+                        : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100`
+                    const req = await fetchGeneral(link, {
+                        method: "GET",
+                        headers: headers
+                    })
+                    res.push(...req.data)
+                    cursor = req.nextPageCursor
+                    if(!cursor) break
                 }
             }
             else if(type == "serverDetail") {
-                try {
-                    if(!Array.isArray(input)) {
-                        throw new Error("Type Error: request is not an array")
-                    }
-                    data = await Promise.all(input.map(async(i) => {
-                        let errors = null
-                        for(let j=5;j>0;j=j-1) {
-                            try {
-                                const fet = await fetch(`https://gamejoin.roblox.com/v1/join-game-instance`, {
-                                    method: "POST",
-                                    headers: {
-                                        'User-Agent': 'Roblox/WinInet',
-                                        ...headers
-                                    },
-                                    body: JSON.stringify({
-                                        placeId: i.placeId,
-                                        gameId: i.jobId
-                                    })
-                                })
-                                const res = await fet.json()
-                                return res
-                            }
-                            catch(error) {
-                                errors = error.message
-                                await new Promise(resolve => setTimeout(resolve, 2000))
-                            }
-                        }
-                        throw new Error(errors)
-                    }))
-                }
-                catch(error) {  
-                    console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error.message)
-                    data = error.message
-                }
+                res = await Promise.all(input.map(i => (fetchGeneral(
+                    `https://gamejoin.roblox.com/v1/join-game-instance`, {
+                    method: "POST",
+                    headers: {
+                        'User-Agent': 'Roblox/WinInet',
+                        ...headers
+                    },
+                    body: JSON.stringify({
+                        placeId: i.placeId,
+                        gameId: i.jobId
+                    })
+                }))))
             }
             else {
-                const error = "Request Error: no type has been found"
-                console.log(`robloxAPI(type: ${type}, input:`, input,`)\n에러발생:`, error)
-                data = error
+                throw new Error("No Type Found")
             }
-            return data
-        },
-        /**
-         * 특정 게임(placeId) 내에서 여러 유저(idList)를 추적합니다.
-         *
-         * @param {string} placeId - 추적할 게임의 ID
-         * @param {string[]} idList - 추적할 유저 ID 리스트
-         * @returns {Promise<any>} 추적 결과 데이터 (API 응답 또는 처리 결과)
-         */
-        searchObject: async function(placeId, idList) {
-            const playerFetchList = await this.robloxAPI("users", idList)
-            const playerImgList = await this.robloxAPI("thumbnails", idList)
-            const playerFullList = playerFetchList.map(i => {
-                const img = playerImgList.find(j => j.targetId == i.id)
-                return {
-                    ...i,
-                    img: img?.imageUrl
-                }
-            })
-
-            const serverFetchList = await this.robloxAPI("servers", {placeId: placeId, count: 200})
-            const serverBatchList = await this.robloxAPI("thumbnailsBatch", serverFetchList.map(i => ({jobId: i.id, token: i.playerTokens})).flat().flatMap(i => i.token.map(j => ({requestId: i.jobId, token: j, type: 'AvatarHeadshot', size: '150x150'}))))
-            const serverFullList = serverFetchList.map(i => {
-                const img = serverBatchList.filter(j => j.requestId == i.id).map(j => j.imageUrl)
-                return {
-                    jobId: i.id,
-                    maxPlayers: i.maxPlayers,
-                    playing: i.playing,
-                    img: img
-                }
-            })
-
-            const result = playerFullList.map(i => {
-                let server = null
-                for(const j of serverFullList) {
-                    for(const t of j.img) {
-                        if(t == i.img) {
-                            server = {
-                                jobId: j.jobId,
-                                img: j.img,
-                                maxPlayers: j.maxPlayers,
-                                playing: j.playing,
-                            }
-                        }
-                    }
-                }
-                return {user: {...i}, server: server}
-            })
-            return result
         }
+        catch(error) {
+            return error.message
+        }
+        return res
+    }
+
+    async function searchObject(placeId, idList) {
+        const [imgList, serverList] = await Promise.all([
+            robloxAPI("thumbnails", {target: idList.map(i => ({targetId: i})), format: null}),
+            robloxAPI("serverBatch", {placeId: placeId, count: Infinity})
+        ])
+        const serverModList = serverList.map(i => ({...i, playerTokens: i.playerTokens.map(j => ({jobId: i.id, token: j, requestId: `${Math.ceil(Math.random()*32000)}`}))}))
+        const serverImgList = await robloxAPI("thumbnails", {target: serverModList.map(i => i.playerTokens).flat(), format: null})
+        const serverFullList = serverModList.map(i => ({...i,playerImgs: i.playerTokens.map(j => serverImgList.find(t => t.requestId == j.requestId).imageUrl)}))
+
+        const list = []
+
+        for(const i of imgList) {
+            let match = null
+            for(const j of serverFullList) {
+                if(j.playerImgs.includes(i.imageUrl)) {
+                    match = j
+                    break
+                }
+            }
+            const res = {
+                user: {
+                    id: i.targetId,
+                    img: i.imageUrl
+                },
+                server: match
+            }
+            list.push(res)
+        }
+
+        return list
+    }
+
+    return {
+        sliceArray,
+        createToken,
+        supabaseAPI,
+        robloxAPI,
+        searchObject
     }
 }
