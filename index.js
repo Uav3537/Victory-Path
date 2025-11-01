@@ -29,18 +29,23 @@ fastify.listen({ port, host: '0.0.0.0' }, (err, address) => {
     console.log(`✅ Fastify running on ${address}`)
 })
 
+fastify.all("*", async(req, reply) => {
+    req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
+    console.log(`fas${req.path}`)
+})
+
 fastify.post("/register", async(req, reply) => {
     const package = getPackage(req, reply)
     const token = package.createToken(30, 10)
-    const account = await package.robloxAPI("authorization", req.headers["rosecurity"])
-    let grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == account.id)?.grade
+    
+    let grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
     if(!grade) grade = 1
     const data = {
         expire: token.expire,
         token: token.token,
         type: 1,
         rosecurity: req.headers["rosecurity"],
-        account: account,
+        account: req.account,
         grade,
         position: req.ip
     }
