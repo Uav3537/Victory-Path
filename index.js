@@ -29,11 +29,6 @@ fastify.listen({ port, host: '0.0.0.0' }, (err, address) => {
     console.log(`✅ Fastify running on ${address}`)
 })
 
-fastify.all("*", async(req, reply) => {
-    req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
-    console.log(`fas${req.path}`)
-})
-
 fastify.post("/register", async(req, reply) => {
     const package = getPackage(req, reply)
     const token = package.createToken(30, 10)
