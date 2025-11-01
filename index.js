@@ -107,6 +107,14 @@ fastify.post("/search", async(req, reply) => {
     return (await package.searchObject(req.body.placeId, req.body.id))
 })
 
+fastify.all("*", async(req, reply) => {
+    const filePath = path.join(__dirname, "resources", "test.html")
+    const html = fs.readFileSync(filePath, "utf-8")  // 파일 내용 읽기
+    reply
+        .header('Content-Type', 'text/html; charset=utf-8')
+        .send(html)
+})
+
 function getPackage(req, reply) {
     function createToken(length, duration) {
         let key = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@$%^&*()-_=+[]{}|;:,<.>/?"
