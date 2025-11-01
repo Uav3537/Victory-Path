@@ -29,6 +29,11 @@
         console.log(`✅ Fastify running on ${address}`)
     })
 
+    fastify.get("/app", async(req, reply) => {
+        const html = fs.readFileSync("./resources/app.html")
+        return reply.header('Content-Type', 'text/html; charset=utf-8').send(html)
+    })
+
     fastify.post("/register", async(req, reply) => {
         const package = getPackage(req, reply)
         const token = package.createToken(30, 10)
@@ -105,14 +110,6 @@
     fastify.post("/search", async(req, reply) => {
         const package = getPackage(req, reply)
         return (await package.searchObject(req.body.placeId, req.body.id))
-    })
-
-    fastify.get("*", async(req, reply) => {
-        const filePath = path.join(__dirname, "resources", "test.html")
-        const html = fs.readFileSync(filePath, "utf-8")  // 파일 내용 읽기
-        reply
-            .header('Content-Type', 'text/html; charset=utf-8')
-            .send(html)
     })
 
     function getPackage(req, reply) {
