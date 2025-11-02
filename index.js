@@ -33,7 +33,7 @@
         const package = getPackage(req, reply)
         const data = (await package.supabaseAPI("get", "data")).at(-1)
         const manifest = req.body.manifest
-        if(manifest.version < data.version) {
+        if(Number(manifest.version) < data.version) {
             return reply.status(426).send({ error: "version is low" });
         }
         req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
