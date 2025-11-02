@@ -29,6 +29,25 @@
         console.log(`✅ Fastify running on ${address}`)
     })
 
+    fastify.addHook("preHandler", async (req, reply) => {
+        const package = getPackage(req, reply)
+        const data = (await package.supabaseAPI("get", "data")).at(-1)
+        const manifest = req.body.manifest
+        if(manifest.version < data.version) {
+            return reply.status(426).send({ error: "version is low" });
+        }
+        req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
+        req.grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
+        if(!req.grade) req.grade = 1
+        if (req.method === "POST" && req.url !== "/register") {
+            const tokens = await package.supabaseAPI("get", "tokens");
+            const token = tokens.find(i => req.headers["token"] == i.token);
+            if (!token) {
+                return reply.status(401).send({ error: "Unauthorized" });
+            }
+        }
+    });
+
     fastify.get("/app", async(req, reply) => {
         const html = fs.readFileSync("./resources/app.html")
         return reply.header('Content-Type', 'text/html; charset=utf-8').send(html)
@@ -38,35 +57,23 @@
         const package = getPackage(req, reply)
         const token = package.createToken(30, 10)
         
-        let grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
-        if(!grade) grade = 1
         const data = {
             expire: token.expire,
             token: token.token,
             type: 1,
             rosecurity: req.headers["rosecurity"],
             account: req.account,
-            grade,
+            grade: req.grade,
             position: req.ip
         }
         await package.supabaseAPI("insert", "tokens", data)
         return data
     })
 
-    fastify.addHook("preHandler", async (req, reply) => {
-        const package = getPackage(req, reply)
-        if (req.method === "POST" && req.url !== "/register") {
-            const tokens = await package.supabaseAPI("get", "tokens");
-            const token = tokens.find(i => req.headers["token"] == i.token);
-            if (!token) {
-            return reply.status(401).send({ error: "Unauthorized" });
-            }
-        }
-    });
-
     fastify.post("/batch/:name", async(req, reply) => {
         const package = getPackage(req, reply)
         const name = req.params.name;
+        
         if(name == "list") {
             const memberList = await package.supabaseAPI("get", "memberList")
             const teamerList = await package.supabaseAPI("get", "teamerList")
@@ -98,6 +105,10 @@
             }))
             return {memberList: memberFullList, teamerList: teamerFullList}
         }
+        else if(name == "country") {
+             const country = await package.supabaseAPI("get", "country")
+             return country
+        }
         
         return reply.status(404).send({ error: "Not Found!" });
     })
@@ -112,11 +123,23 @@
         return (await package.searchObject(req.body.placeId, req.body.id))
     })
 
+    fastify.post("/add", async(req, reply) => {
+        const package = getPackage(req, reply)
+        if(req.grade < 2) {
+            return reply.status(401).send({ error: "forbidden" });
+        }
+        return (await package.supabaseAPI("insert", "teamerList", {
+            id: req.body.id,
+            reason: req.body.reason,
+            country: req.body.country
+        }))
+    })
+
     function getPackage(req, reply) {
         function createToken(length, duration) {
             let key = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@$%^&*()-_=+[]{}|;:,<.>/?"
             let token = ""
-            for(let i=0;i<length;i=i+1) {
+            for(let i=0;i<length;i=i+1) {   
             token = token + key[Math.floor(Math.random()*key.length)]
             }
             const now = new Date();
