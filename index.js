@@ -94,14 +94,14 @@
             }})
             ])
             const memberFullList = memberList.map(i => ({
-            ...i,
-            img: memberImgList.find(j => j.targetId == i.id)?.imageUrl,
-            ...memberDataList.find(j => j.id == i.id)
+                ...i,
+                img: memberImgList.find(j => j.targetId == i.id)?.imageUrl || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png",
+                ...memberDataList.find(j => j.id == i.id)
             }))
             const teamerFullList = teamerList.map(i => ({
-            ...i,
-            img: teamerImgList.find(j => j.targetId == i.id).imageUrl,
-            ...teamerDataList.find(j => j.id == i.id)
+                ...i,
+                img: teamerImgList.find(j => j.targetId == i.id)?.imageUrl || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png",
+                ...teamerDataList.find(j => j.id == i.id)
             }))
             return {memberList: memberFullList, teamerList: teamerFullList}
         }
