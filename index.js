@@ -1,4 +1,4 @@
-    const fastify = require('fastify')({ logger: false })
+    const fastify = require('fastify')({ logger: true })
     const fastifyCors = require('@fastify/cors')
 
     const { createClient } = require('@supabase/supabase-js');
@@ -95,7 +95,7 @@
             ])
             const memberFullList = memberList.map(i => ({
             ...i,
-            img: memberImgList.find(j => j.targetId == i.id).imageUrl,
+            img: memberImgList.find(j => j.targetId == i.id)?.imageUrl,
             ...memberDataList.find(j => j.id == i.id)
             }))
             const teamerFullList = teamerList.map(i => ({
