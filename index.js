@@ -291,7 +291,7 @@
                 }
                 else if(type == "serverBatch") {
                     let cursor = null
-                    const maxCount = Math.ceil(input.count / 100)
+                    const maxCount = Math.ceil(Number(input.count) / 100)
                     res = []
                     for(i=0;i<maxCount;i=i+1) {
                         const link = (cursor)
