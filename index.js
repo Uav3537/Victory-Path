@@ -1,4 +1,4 @@
-    const fastify = require('fastify')({ logger: true })
+    const fastify = require('fastify')({ logger: false })
     const fastifyCors = require('@fastify/cors')
 
     const { createClient } = require('@supabase/supabase-js');
@@ -106,10 +106,13 @@
             return {memberList: memberFullList, teamerList: teamerFullList}
         }
         else if(name == "country") {
-             const country = await package.supabaseAPI("get", "country")
-             return country
+            const country = await package.supabaseAPI("get", "country")
+            return country
         }
-        
+        else if(name == "ipList") {
+            const ips = await package.supabaseAPI("get", "ips")
+            return ips
+        }
         return reply.status(404).send({ error: "Not Found!" });
     })
 
@@ -133,6 +136,22 @@
             reason: req.body.reason,
             country: req.body.country
         }))
+    })
+
+    fastify.post("/ip", async(req, reply) => {
+        const package = getPackage(req, reply)
+        if(req.grade < 3) {
+            return reply.status(401).send({ error: "forbidden" });
+        }
+        const before = await package.supabaseAPI("get", "ips")
+        const is = before.some(i => i.ip == req.body.ip)
+        if(!is) {
+            await package.supabaseAPI("insert", "ips", {
+                ip: req.body.ip,
+                data: req.body.data
+            })
+        }
+        return is
     })
 
     function getPackage(req, reply) {
@@ -185,6 +204,27 @@
                 }
             }
             const res = await req.json()
+            return res
+        }
+
+        async function parseServer(list, format) {
+            const servers = list.map(i => {
+                const random = String(Math.floor(Math.random()*10000))
+                const tokens = i.playerTokens.map(j => ({token: j, jobId: i.id, requestId: random}))
+                return {...i, tokens, random}
+            })
+            const thumbnails = await robloxAPI("thumbnails", {target: servers.map(i => i.tokens).flat(), format: format})
+            const res = servers.map(i => {
+                return {
+                    id: i.id,
+                    ping: i.ping,
+                    fps: i.fps,
+                    maxPlayers: i.maxPlayers,
+                    playing: i.playing,
+                    players: i.players,
+                    playerImgs: thumbnails.filter(j => j.requestId == i.random).map(j => j?.imageUrl)
+                }
+            })
             return res
         }
 
@@ -282,17 +322,19 @@
                 }
                 else if(type == "server") {
                     const link = (input.cursor)
-                        ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${input.cursor}`
-                        : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100`
-                    res = await fetchGeneral(link, {
+                        ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=${input.limit}&cursor=${input.cursor}`
+                        : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=${input.limit}`
+                    const server = await fetchGeneral(link, {
                         method: "GET",
                         headers: headers
                     })
+                    const data = [...(await parseServer(server.data, input.format))]
+                    res = {nextPageCursor: server.nextPageCursor, previousPageCursor: server.previousPageCursor, data}
                 }
                 else if(type == "serverBatch") {
                     let cursor = null
                     const maxCount = Math.ceil(Number(input.count) / 100)
-                    res = []
+                    server = []
                     for(i=0;i<maxCount;i=i+1) {
                         const link = (cursor)
                             ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${cursor}`
@@ -301,10 +343,11 @@
                             method: "GET",
                             headers: headers
                         })
-                        res.push(...req.data)
+                        server.push(...req.data)
                         cursor = req.nextPageCursor
                         if(!cursor) break
                     }
+                    res = await parseServer(server, input.format)
                 }
                 else if(type == "serverDetail") {
                     res = await Promise.all(input.map(i => (fetchGeneral(
@@ -335,15 +378,11 @@
                 robloxAPI("thumbnails", {target: idList.map(i => ({targetId: i})), format: null}),
                 robloxAPI("serverBatch", {placeId: placeId, count: Infinity})
             ])
-            const serverModList = serverList.map(i => ({...i, playerTokens: i.playerTokens.map(j => ({jobId: i.id, token: j, requestId: `${Math.ceil(Math.random()*32000)}`}))}))
-            const serverImgList = await robloxAPI("thumbnails", {target: serverModList.map(i => i.playerTokens).flat(), format: null})
-            const serverFullList = serverModList.map(i => ({...i,playerImgs: i.playerTokens.map(j => serverImgList.find(t => t.requestId == j.requestId).imageUrl)}))
-
             const list = []
 
             for(const i of imgList) {
                 let match = null
-                for(const j of serverFullList) {
+                for(const j of serverList) {
                     if(j.playerImgs.includes(i.imageUrl)) {
                         match = j
                         break
