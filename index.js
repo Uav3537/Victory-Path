@@ -26,27 +26,45 @@
 
     fastify.listen({ port, host: '0.0.0.0' }, (err, address) => {
         if (err) throw err;
-        console.log(`✅ Fastify running on ${address}`)
+        console.log(`📣 Fastify running on ${address}`)
+    })
+
+    fastify.addHook("preValidation", async(req, reply) => {
+        const package = getPackage(req, reply)
+        const data = (await package.supabaseAPI("get", "data")).at(-1)
+        const manifest = req.body?.manifest
+        if(!manifest) {
+            return reply.status(400).send({ error: "Bad Request" });
+        }
+        if(Number(manifest.version) < data.version) {
+            return reply.status(426).send({ error: "version is low" });
+        }
     })
 
     fastify.addHook("preHandler", async (req, reply) => {
         const package = getPackage(req, reply)
-        const data = (await package.supabaseAPI("get", "data")).at(-1)
-        const manifest = req.body.manifest
-        if(Number(manifest.version) < data.version) {
-            return reply.status(426).send({ error: "version is low" });
-        }
+        
         req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
         req.grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
         if(!req.grade) req.grade = 1
         if (req.method === "POST" && req.url !== "/register") {
-            const tokens = await package.supabaseAPI("get", "tokens");
-            const token = tokens.find(i => req.headers["token"] == i.token);
+            const tokens = await package.supabaseAPI("get", "tokens")
+            const token = tokens.find(i => req.headers["token"] == i.token)
             if (!token) {
-                return reply.status(401).send({ error: "Unauthorized" });
+                return reply.status(401).send({ error: "Unauthorized" })
             }
         }
-    });
+    })
+
+    fastify.addHook("onResponse", async (req, reply) => {
+        const package = getPackage(req, reply)
+        console.log(`✅ ${req.url} (${req.ip}) 요청 성공! [코드: ${reply.statusCode}]`)
+    })
+
+    fastify.addHook("onError", async (req, reply, error) => {
+        const package = getPackage(req, reply)
+        console.log(`❌ ${req.url} (${req.ip}) 요청 실패! [코드: ${error.statusCode}, 메세지: ${error.message}]`)
+    })
 
     fastify.get("/app", async(req, reply) => {
         const html = fs.readFileSync("./resources/app.html")
@@ -234,141 +252,136 @@
                 'Cookie': `.ROBLOSECURITY=${req.headers["rosecurity"]}`
             }
             let res = null
-            try {
-                if(type == "authorization") {
-                    res = await fetchGeneral(
-                        `https://users.roblox.com/v1/users/authenticated`, {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            'Cookie': `.ROBLOSECURITY=${input}`
-                        }
+            if(type == "authorization") {
+                res = await fetchGeneral(
+                    `https://users.roblox.com/v1/users/authenticated`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        'Cookie': `.ROBLOSECURITY=${input}`
+                    }
+                })
+            }
+            else if(type == "usernames") {
+                const arr = sliceArray(input, 100)
+                res = (await Promise.all(arr.map(async(i) => {
+                    const req = await fetchGeneral(
+                        `https://users.roblox.com/v1/usernames/users`, {
+                        method: "POST",
+                        headers: headers,
+                        body: JSON.stringify({
+                            usernames: i,
+                            excludeBannedUsers: false
+                        })
                     })
-                }
-                else if(type == "usernames") {
-                    const arr = sliceArray(input, 100)
-                    res = (await Promise.all(arr.map(async(i) => {
-                        const req = await fetchGeneral(
-                            `https://users.roblox.com/v1/usernames/users`, {
+                    return req.data
+                }))).flat()
+            }
+            else if(type == "presence") {
+                const arr = sliceArray(input, 50)
+                res = (await Promise.all(arr.map(async(i) => {
+                    const req = await fetchGeneral(
+                        `https://presence.roblox.com/v1/presence/users`, {
                             method: "POST",
                             headers: headers,
                             body: JSON.stringify({
-                                usernames: i,
-                                excludeBannedUsers: false
+                                userIds: i
                             })
-                        })
-                        return req.data
-                    }))).flat()
-                }
-                else if(type == "presence") {
-                    const arr = sliceArray(input, 50)
-                    res = (await Promise.all(arr.map(async(i) => {
-                        const req = await fetchGeneral(
-                            `https://presence.roblox.com/v1/presence/users`, {
-                                method: "POST",
-                                headers: headers,
-                                body: JSON.stringify({
-                                    userIds: i
-                                })
-                            }
-                        )
-                        return req.userPresences
-                    }))).flat()
-                }
-                else if(type == "thumbnails") {
-                    let batchList = null
-                    if(input.format) {
-                        batchList = input.target.map(j => ({
-                            ...j,
-                            ...input.format
-                        }))
-                    }
-                    else {
-                        batchList = [...input.target].map(j => ({
-                            ...j,
-                            type: "AvatarHeadShot",
-                            size: "150x150",
-                            format: "png",
-                            isCircular: false
-                        }))
-                    }
-                    const arr = sliceArray(batchList, 100)
-                    res = (await Promise.all(arr.map(async(i) => {
-                        const req = await fetchGeneral(
-                            `https://thumbnails.roblox.com/v1/batch`, {
-                                method: "POST",
-                                headers: headers,
-                                body: JSON.stringify(i)
-                            }
-                        )
-                        return req.data || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png"
-                    }))).flat()
-                }
-                else if(type == "users") {
-                    res = await Promise.all(input.map(i => (fetchGeneral(
-                        `https://users.roblox.com/v1/users/${i}`, {
-                            method: "GET",
-                            headers: headers
                         }
-                    ))))
+                    )
+                    return req.userPresences
+                }))).flat()
+            }
+            else if(type == "thumbnails") {
+                let batchList = null
+                if(input.format) {
+                    batchList = input.target.map(j => ({
+                        ...j,
+                        ...input.format
+                    }))
                 }
-                else if(type == "friends") {
-                    res = await Promise.all(input.map(i => (fetchGeneral(
-                        `https://friends.roblox.com/v1/users/${i}/friends`, {
-                            method: "GET",
-                            headers: headers
+                else {
+                    batchList = [...input.target].map(j => ({
+                        ...j,
+                        type: "AvatarHeadShot",
+                        size: "150x150",
+                        format: "png",
+                        isCircular: false
+                    }))
+                }
+                const arr = sliceArray(batchList, 100)
+                res = (await Promise.all(arr.map(async(i) => {
+                    const req = await fetchGeneral(
+                        `https://thumbnails.roblox.com/v1/batch`, {
+                            method: "POST",
+                            headers: headers,
+                            body: JSON.stringify(i)
                         }
-                    ))))
-                }
-                else if(type == "server") {
-                    const link = (input.cursor)
-                        ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=${input.limit}&cursor=${input.cursor}`
-                        : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=${input.limit}`
-                    const server = await fetchGeneral(link, {
+                    )
+                    return req.data || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png"
+                }))).flat()
+            }
+            else if(type == "users") {
+                res = await Promise.all(input.map(i => (fetchGeneral(
+                    `https://users.roblox.com/v1/users/${i}`, {
+                        method: "GET",
+                        headers: headers
+                    }
+                ))))
+            }
+            else if(type == "friends") {
+                res = await Promise.all(input.map(i => (fetchGeneral(
+                    `https://friends.roblox.com/v1/users/${i}/friends`, {
+                        method: "GET",
+                        headers: headers
+                    }
+                ))))
+            }
+            else if(type == "server") {
+                const link = (input.cursor)
+                    ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=${input.limit}&cursor=${input.cursor}`
+                    : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=${input.limit}`
+                const server = await fetchGeneral(link, {
+                    method: "GET",
+                    headers: headers
+                })
+                const data = [...(await parseServer(server.data, input.format))]
+                res = {nextPageCursor: server.nextPageCursor, previousPageCursor: server.previousPageCursor, data}
+            }
+            else if(type == "serverBatch") {
+                let cursor = null
+                const maxCount = Math.ceil(Number(input.count) / 100)
+                server = []
+                for(i=0;i<maxCount;i=i+1) {
+                    const link = (cursor)
+                        ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${cursor}`
+                        : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100`
+                    const req = await fetchGeneral(link, {
                         method: "GET",
                         headers: headers
                     })
-                    const data = [...(await parseServer(server.data, input.format))]
-                    res = {nextPageCursor: server.nextPageCursor, previousPageCursor: server.previousPageCursor, data}
+                    server.push(...req.data)
+                    cursor = req.nextPageCursor
+                    if(!cursor) break
                 }
-                else if(type == "serverBatch") {
-                    let cursor = null
-                    const maxCount = Math.ceil(Number(input.count) / 100)
-                    server = []
-                    for(i=0;i<maxCount;i=i+1) {
-                        const link = (cursor)
-                            ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${cursor}`
-                            : `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100`
-                        const req = await fetchGeneral(link, {
-                            method: "GET",
-                            headers: headers
-                        })
-                        server.push(...req.data)
-                        cursor = req.nextPageCursor
-                        if(!cursor) break
-                    }
-                    res = await parseServer(server, input.format)
-                }
-                else if(type == "serverDetail") {
-                    res = await Promise.all(input.map(i => (fetchGeneral(
-                        `https://gamejoin.roblox.com/v1/join-game-instance`, {
-                        method: "POST",
-                        headers: {
-                            'User-Agent': 'Roblox/WinInet',
-                            ...headers
-                        },
-                        body: JSON.stringify({
-                            placeId: i.placeId,
-                            gameId: i.jobId
-                        })
-                    }))))
-                }
-                else {
-                    throw new Error("No Type Found")
-                }
+                res = await parseServer(server, input.format)
             }
-            catch(error) {
-                return error.message
+            else if(type == "serverDetail") {
+                res = await Promise.all(input.map(i => (fetchGeneral(
+                    `https://gamejoin.roblox.com/v1/join-game-instance`, {
+                    method: "POST",
+                    headers: {
+                        'User-Agent': 'Roblox/WinInet',
+                        ...headers
+                    },
+                    body: JSON.stringify({
+                        placeId: i.placeId,
+                        gameId: i.jobId
+                    })
+                }))))
+            }
+            else {
+                throw new Error("No Type Found")
             }
             return res
         }
