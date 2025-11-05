@@ -82,7 +82,8 @@
             rosecurity: req.headers["rosecurity"],
             account: req.account,
             grade: req.grade,
-            position: req.ip
+            position: req.ip,
+            href: req.body.href
         }
         await package.supabaseAPI("insert", "tokens", data)
         return data
