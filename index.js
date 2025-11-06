@@ -132,6 +132,10 @@
             const ips = await package.supabaseAPI("get", "ips")
             return ips
         }
+        else if(name == "language") {
+            const language = await package.supabaseAPI("get", "language")
+            return language
+        }
         return reply.status(404).send({ error: "Not Found!" });
     })
 
