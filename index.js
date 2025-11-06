@@ -133,8 +133,12 @@
             return ips
         }
         else if(name == "language") {
-            const language = await package.supabaseAPI("get", "language")
-            return language
+            const languagePack = await package.supabaseAPI("get", "language")
+            const language = req.body.language
+            const converted = languagePack.map(item => ({
+                [item.key]: item[language] || item["en"]
+            }))
+            return converted
         }
         return reply.status(404).send({ error: "Not Found!" });
     })
