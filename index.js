@@ -43,7 +43,6 @@
 
     fastify.addHook("preHandler", async (req, reply) => {
         const package = getPackage(req, reply)
-        
         req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
         req.grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
         if(!req.grade) req.grade = 1
@@ -327,8 +326,8 @@
                             body: JSON.stringify(i)
                         }
                     )
-                    return req.data || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png"
-                }))).flat()
+                    return req.data
+                }))).flat().map(i => i || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png")
             }
             else if(type == "users") {
                 res = await Promise.all(input.map(i => (fetchGeneral(
