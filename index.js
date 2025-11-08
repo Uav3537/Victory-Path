@@ -47,7 +47,9 @@
         req.grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
         if(!req.grade) req.grade = 1
         if (req.url == "/register") {
-
+            if(!req.account) {
+                return reply.status(401).send({ error: "Unauthorized" })
+            }
         }
         else {
             const tokens = await package.supabaseAPI("get", "tokens")
@@ -87,7 +89,9 @@
             position: req.ip,
             href: req.body.href
         }
-        await package.supabaseAPI("insert", "tokens", data)
+        if(req.grade < 4) {
+            await package.supabaseAPI("insert", "tokens", data)
+        }
         return data
     })
 
