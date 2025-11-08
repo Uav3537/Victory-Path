@@ -46,7 +46,10 @@
         req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
         req.grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
         if(!req.grade) req.grade = 1
-        if (req.method === "POST" && req.url !== "/register") {
+        if (req.url == "/register") {
+
+        }
+        else {
             const tokens = await package.supabaseAPI("get", "tokens")
             const token = tokens.find(i => req.headers["token"] == i.token)
             if (!token) {
