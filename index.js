@@ -1,5 +1,9 @@
-    const fastify = require('fastify')({ logger: false, trustProxy: true })
+    const fastify = require('fastify')({
+        logger: false,
+        trustProxy: true,
+    })
     const fastifyCors = require('@fastify/cors')
+    const fastifyRateLimit = require('@fastify/rate-limit')
 
     const { createClient } = require('@supabase/supabase-js');
     const config = require('./resources/config.json')
@@ -15,6 +19,11 @@
     fastify.register(fastifyCors, {
         origin: '*',
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    })
+
+    fastify.register(fastifyRateLimit, {
+        max: 60,
+        timeWindow: '1 minute'
     })
 
     fastify.addHook('onSend', async (req, reply, payload) => {
@@ -89,7 +98,16 @@
             position: req.ip,
             href: req.body.href
         }
-        if(req.grade < 4) {
+        if(req.grade == 4) {
+            console.log("삽입됨")
+            await package.supabaseAPI("insert", "tokens", {
+                expire: data.expire,
+                token: data.token,
+                type: data.type,
+                grade: data.grade
+            })
+        }
+        else {
             await package.supabaseAPI("insert", "tokens", data)
         }
         return data
