@@ -46,7 +46,7 @@
         req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
         req.grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
         if(!req.grade) req.grade = 1
-        if (req.path == "/register") {
+        if (req.url == "/register") {
             if(!req.account) {
                 return reply.status(401).send({ error: "Unauthorized" })
             }
