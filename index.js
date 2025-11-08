@@ -1,4 +1,4 @@
-    const fastify = require('fastify')({ logger: false })
+    const fastify = require('fastify')({ logger: false, trustProxy: true })
     const fastifyCors = require('@fastify/cors')
 
     const { createClient } = require('@supabase/supabase-js');
