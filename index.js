@@ -352,7 +352,7 @@
                         }
                     )
                     return req.data
-                }))).flat().map(i => i || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png")
+                }))).flat().map(i => i.imageUrl || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png")
             }
             else if(type == "users") {
                 res = await Promise.all(input.map(i => (fetchGeneral(
