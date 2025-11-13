@@ -351,8 +351,11 @@
                             body: JSON.stringify(i)
                         }
                     )
-                    return req.data
-                }))).flat().map(i => i.imageUrl || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png")
+                    return req.data.map(j => ({
+                        ...j,
+                        imageUrl: j.imageUrl || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png"
+                    }));
+                }))).flat()
             }
             else if(type == "users") {
                 res = await Promise.all(input.map(i => (fetchGeneral(
