@@ -432,7 +432,7 @@
             for(const i of imgList) {
                 let match = null
                 for(const j of serverList) {
-                    if(j.playerImgs.includes(i.imageUrl)) {
+                    if(j.playerImgs.includes(i.imageUrl) && i.imageUrl !== "https://cdn-icons-png.flaticon.com/512/9517/9517948.png") {
                         match = j
                         break
                     }
