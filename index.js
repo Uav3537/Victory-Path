@@ -375,7 +375,7 @@
                         headers: headers
                     })
                     return req.data
-                }))
+                })).flat()
             }
             else if(type == "server") {
                 const link = (input.cursor)
