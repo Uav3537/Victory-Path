@@ -206,6 +206,8 @@
     })
 
     function getPackage(req, reply) {
+        const replace = "https://cdn-icons-png.flaticon.com/512/9517/9517948.png"
+        
         function createToken(length, duration) {
             let key = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@$%^&*()-_=+[]{}|;:,<.>/?"
             let token = ""
@@ -353,7 +355,7 @@
                     )
                     return req.data.map(j => ({
                         ...j,
-                        imageUrl: j.imageUrl || "https://cdn-icons-png.flaticon.com/512/9517/9517948.png"
+                        imageUrl: j.imageUrl || replace
                     }));
                 }))).flat()
             }
@@ -432,7 +434,7 @@
             for(const i of imgList) {
                 let match = null
                 for(const j of serverList) {
-                    if(j.playerImgs.includes(i.imageUrl) && i.imageUrl !== "https://cdn-icons-png.flaticon.com/512/9517/9517948.png") {
+                    if(j.playerImgs.includes(i.imageUrl) && i.imageUrl !== replace) {
                         match = j
                         break
                     }
