@@ -374,8 +374,8 @@
                         method: "GET",
                         headers: headers
                     })
-                    return req.data
-                })).flat()
+                    return ({user: i, friend: req.data})
+                }))
             }
             else if(type == "server") {
                 const link = (input.cursor)
