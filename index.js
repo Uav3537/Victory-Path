@@ -207,7 +207,7 @@
 
     function getPackage(req, reply) {
         const replace = "https://cdn-icons-png.flaticon.com/512/9517/9517948.png"
-        
+
         function createToken(length, duration) {
             let key = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@$%^&*()-_=+[]{}|;:,<.>/?"
             let token = ""
@@ -368,12 +368,14 @@
                 ))))
             }
             else if(type == "friends") {
-                res = await Promise.all(input.map(i => (fetchGeneral(
+                res = await Promise.all(input.map(async(i) => {
+                    const req = await fetchGeneral(
                     `https://friends.roblox.com/v1/users/${i}/friends`, {
                         method: "GET",
                         headers: headers
-                    }
-                ))))
+                    })
+                    return req.data
+                }))
             }
             else if(type == "server") {
                 const link = (input.cursor)
