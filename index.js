@@ -391,7 +391,7 @@
             else if(type == "serverBatch") {
                 let cursor = null
                 const maxCount = Math.ceil(Number(input.count) / 100)
-                server = []
+                let server = []
                 for(i=0;i<maxCount;i=i+1) {
                     const link = (cursor)
                         ? `https://games.roblox.com/v1/games/${input.placeId}/servers/public?limit=100&cursor=${cursor}`
