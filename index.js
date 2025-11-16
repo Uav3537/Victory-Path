@@ -182,6 +182,11 @@
         if(req.grade < 2) {
             return reply.status(401).send({ error: "forbidden" });
         }
+        const before = await package.supabaseAPI("get", "teamerList")
+        const is = before.some(i => i.id == req.body.id)
+        if(is) {
+            return reply.status(409).send({ error: "Conflict!" });
+        }
         return (await package.supabaseAPI("insert", "teamerList", {
             id: req.body.id,
             reason: req.body.reason,
