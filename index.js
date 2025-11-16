@@ -69,7 +69,7 @@
         }
     })
 
-    fastify.addHook("onSend", async(req, reply) => {
+    fastify.addHook("onSend", async(req, reply, payload) => {
         try {
             const data = JSON.parse(payload)
 
