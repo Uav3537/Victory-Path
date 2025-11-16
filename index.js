@@ -196,18 +196,23 @@
 
     fastify.post("/ip", async(req, reply) => {
         const package = getPackage(req, reply)
+        const ip = req.body.ip
         if(req.grade < 3) {
             return reply.header("noRetry", "y").status(401).send({ error: "forbidden" });
         }
+        if(!ip) {
+            return reply.header("noRetry", "y").status(404).send({ error: "Not Found" });
+        }
+        const config = await fetchGeneral(`https://api.ipgeolocation.io/v2/ipgeo?apiKey=25e68f2433b94b8e976543823fa637a0&ip=${ip}`)
         const before = await package.supabaseAPI("get", "ips")
         const is = before.some(i => i.ip == req.body.ip)
         if(!is) {
             await package.supabaseAPI("insert", "ips", {
-                ip: req.body.ip,
-                data: req.body.data
+                ip: ip,
+                data: config
             })
         }
-        return is
+        return config
     })
 
     function getPackage(req, reply) {
