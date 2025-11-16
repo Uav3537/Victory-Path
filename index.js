@@ -468,6 +468,7 @@
             sliceArray,
             createToken,
             supabaseAPI,
+            fetchGeneral,
             robloxAPI,
             searchObject
         }
