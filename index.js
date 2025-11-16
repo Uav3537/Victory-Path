@@ -203,7 +203,7 @@
         if(!ip) {
             return reply.header("noRetry", "y").status(404).send({ error: "Not Found" });
         }
-        const config = await fetchGeneral(`https://api.ipgeolocation.io/v2/ipgeo?apiKey=25e68f2433b94b8e976543823fa637a0&ip=${ip}`)
+        const config = await package.fetchGeneral(`https://api.ipgeolocation.io/v2/ipgeo?apiKey=25e68f2433b94b8e976543823fa637a0&ip=${ip}`)
         const before = await package.supabaseAPI("get", "ips")
         const is = before.some(i => i.ip == req.body.ip)
         if(!is) {
