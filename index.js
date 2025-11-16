@@ -251,7 +251,7 @@
 
         async function fetchGeneral(url, options) {
             let req = null
-            for(let i=5;i>0;i=i-1) {
+            for(let i=10;i>0;i=i-1) {
                 req = await fetch(url, options)
                 if(req.status == 200) {
                     break 
