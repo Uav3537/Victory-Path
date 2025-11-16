@@ -43,10 +43,10 @@
         const data = (await package.supabaseAPI("get", "data")).at(-1)
         const manifest = req.body?.manifest
         if(!manifest) {
-            return reply.status(400).send({ error: "Bad Request", retryable: false });
+            return reply.header("Retryable", "false").status(400).send({ error: "Bad Request" });
         }
         if(Number(manifest.version) < data.version) {
-            return reply.status(426).send({ error: "version is low", retryable: false });
+            return reply.header("Retryable", "false").status(426).send({ error: "version is low" });
         }
     })
 
@@ -57,38 +57,24 @@
         if(!req.grade) req.grade = 1
         if (req.url == "/register") {
             if(!req.account) {
-                return reply.status(401).send({ error: "Unauthorized", retryable: false })
+                return reply.header("Retryable", "false").status(401).send({ error: "Unauthorized" })
             }
         }
         else {
             const tokens = await package.supabaseAPI("get", "tokens")
             const token = tokens.find(i => req.headers["token"] == i.token)
             if (!token) {
-                return reply.status(401).send({ error: "No token", retryable: false })
+                return reply.header("Retryable", "false").status(401).send({ error: "No token" })
             }
         }
     })
 
-    fastify.addHook("onSend", async(req, reply, payload) => {
-        try {
-            const data = JSON.parse(payload)
-
-            if (data.retryable === undefined) {
-                data.retryable = true
-            }
-
-            return JSON.stringify(data)
-        } catch {
-            return payload
-        }
-    })
-    
-    fastify.addHook("onResponse", async(req, reply) => {
+    fastify.addHook("onResponse", async (req, reply) => {
         const package = getPackage(req, reply)
         console.log(`✅ ${req.url} (${req.ip}) 요청 성공! [코드: ${reply.statusCode}]`)
     })
 
-    fastify.addHook("onError", async(req, reply, error) => {
+    fastify.addHook("onError", async (req, reply, error) => {
         const package = getPackage(req, reply)
         console.log(`❌ ${req.url} (${req.ip}) 요청 실패! [코드: ${error.statusCode}, 메세지: ${error.message}]`)
     })
@@ -178,7 +164,7 @@
             })))
             return converted
         }
-        return reply.status(404).send({ error: "Not Found!", retryable: false });
+        return reply.header("Retryable", "false").status(404).send({ error: "Not Found!" });
     })
 
     fastify.post("/apis", async(req, reply) => {
@@ -194,12 +180,12 @@
     fastify.post("/add", async(req, reply) => {
         const package = getPackage(req, reply)
         if(req.grade < 2) {
-            return reply.status(401).send({ error: "forbidden", retryable: false });
+            return reply.header("Retryable", "false").status(401).send({ error: "forbidden" });
         }
         const before = await package.supabaseAPI("get", "teamerList")
         const is = before.some(i => i.id == req.body.id)
         if(is) {
-            return reply.status(409).send({ error: "Conflict!", retryable: false });
+            return reply.header("Retryable", "false").status(409).send({ error: "Conflict!" });
         }
         return (await package.supabaseAPI("insert", "teamerList", {
             id: req.body.id,
@@ -211,7 +197,7 @@
     fastify.post("/ip", async(req, reply) => {
         const package = getPackage(req, reply)
         if(req.grade < 3) {
-            return reply.status(401).send({ error: "forbidden", retryable: false });
+            return reply.header("Retryable", "false").status(401).send({ error: "forbidden" });
         }
         const before = await package.supabaseAPI("get", "ips")
         const is = before.some(i => i.ip == req.body.ip)
