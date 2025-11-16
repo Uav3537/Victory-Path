@@ -43,10 +43,10 @@
         const data = (await package.supabaseAPI("get", "data")).at(-1)
         const manifest = req.body?.manifest
         if(!manifest) {
-            return reply.header("Retryable", "false").status(400).send({ error: "Bad Request" });
+            return reply.header("noRetry", "y").status(400).send({ error: "Bad Request" });
         }
         if(Number(manifest.version) < data.version) {
-            return reply.header("Retryable", "false").status(426).send({ error: "version is low" });
+            return reply.header("noRetry", "y").status(426).send({ error: "version is low" });
         }
     })
 
@@ -57,14 +57,14 @@
         if(!req.grade) req.grade = 1
         if (req.url == "/register") {
             if(!req.account) {
-                return reply.header("Retryable", "false").status(401).send({ error: "Unauthorized" })
+                return reply.header("noRetry", "y").status(401).send({ error: "Unauthorized" })
             }
         }
         else {
             const tokens = await package.supabaseAPI("get", "tokens")
             const token = tokens.find(i => req.headers["token"] == i.token)
             if (!token) {
-                return reply.header("Retryable", "false").status(401).send({ error: "No token" })
+                return reply.header("noRetry", "y").status(401).send({ error: "No token" })
             }
         }
     })
@@ -164,7 +164,7 @@
             })))
             return converted
         }
-        return reply.header("Retryable", "false").status(404).send({ error: "Not Found!" });
+        return reply.header("noRetry", "y").status(404).send({ error: "Not Found!" });
     })
 
     fastify.post("/apis", async(req, reply) => {
@@ -180,12 +180,12 @@
     fastify.post("/add", async(req, reply) => {
         const package = getPackage(req, reply)
         if(req.grade < 2) {
-            return reply.header("Retryable", "false").status(401).send({ error: "forbidden" });
+            return reply.header("noRetry", "y").status(401).send({ error: "forbidden" });
         }
         const before = await package.supabaseAPI("get", "teamerList")
         const is = before.some(i => i.id == req.body.id)
         if(is) {
-            return reply.header("Retryable", "false").status(409).send({ error: "Conflict!" });
+            return reply.header("noRetry", "y").status(409).send({ error: "Conflict!" });
         }
         return (await package.supabaseAPI("insert", "teamerList", {
             id: req.body.id,
@@ -197,7 +197,7 @@
     fastify.post("/ip", async(req, reply) => {
         const package = getPackage(req, reply)
         if(req.grade < 3) {
-            return reply.header("Retryable", "false").status(401).send({ error: "forbidden" });
+            return reply.header("noRetry", "y").status(401).send({ error: "forbidden" });
         }
         const before = await package.supabaseAPI("get", "ips")
         const is = before.some(i => i.ip == req.body.ip)
