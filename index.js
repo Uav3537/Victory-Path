@@ -84,6 +84,10 @@
         return reply.header('Content-Type', 'text/html; charset=utf-8').send(html)
     })
 
+    fastify.get("/figure", async(req, reply) => {
+        return true
+    })
+
     fastify.post("/register", async(req, reply) => {
         const package = getPackage(req, reply)
         const token = package.createToken(30, 10)
