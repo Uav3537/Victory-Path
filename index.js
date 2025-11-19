@@ -84,7 +84,7 @@
         return reply.header('Content-Type', 'text/html; charset=utf-8').send(html)
     })
 
-    fastify.get("/figure", async(req, reply) => {
+    fastify.post("/figure", async(req, reply) => {
         return true
     })
 
