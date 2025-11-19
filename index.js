@@ -39,6 +39,7 @@
     })
 
     fastify.addHook("preValidation", async(req, reply) => {
+        if (req.url === "/app") return;
         const package = getPackage(req, reply)
         const data = (await package.supabaseAPI("get", "data")).at(-1)
         const manifest = req.body?.manifest
@@ -51,6 +52,7 @@
     })
 
     fastify.addHook("preHandler", async (req, reply) => {
+        if (req.url === "/app") return;
         const package = getPackage(req, reply)
         req.account = await package.robloxAPI("authorization", req.headers["rosecurity"])
         req.grade = (await package.supabaseAPI("get", "memberList")).find(i => i.id == req.account.id)?.grade
@@ -77,11 +79,6 @@
     fastify.addHook("onError", async (req, reply, error) => {
         const package = getPackage(req, reply)
         console.log(`❌ ${req.url} (${req.ip}) 요청 실패! [코드: ${error.statusCode}, 메세지: ${error.message}]`)
-    })
-
-    fastify.get("/app", async(req, reply) => {
-        const html = fs.readFileSync("./resources/app.html")
-        return reply.header('Content-Type', 'text/html; charset=utf-8').send(html)
     })
 
     fastify.post("/figure", async(req, reply) => {
