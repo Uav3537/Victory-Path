@@ -191,7 +191,7 @@
         return (await package.supabaseAPI("insert", "teamerList", {
             id: req.body.id,
             reason: req.body.reason,
-            country: req.body.country
+            country: req.body.country.code
         }))
     })
 
